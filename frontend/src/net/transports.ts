@@ -2,13 +2,15 @@
 import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js'
 import type { Msg, PlayerInfo, Transport } from './protocol'
 
-const URL = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+// 공개돼도 되는 값(프로젝트 URL, publishable 키)이라 기본값으로 둬요. 환경변수가 있으면 그걸 우선 사용.
+// ⚠️ 비밀 키(sb_secret_, service_role)는 절대 여기에 넣지 마세요.
+const URL = ((import.meta.env.VITE_SUPABASE_URL as string | undefined) || 'https://goqikjhpjrhlygkrlyhw.supabase.co').trim()
+const KEY = ((import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) || 'sb_publishable_BnP2C9NyGPOe2lIXRliyPA_y_MFzu6h').trim()
 export const supabaseConfigured = !!(URL && KEY)
 /** true면 익명 로그인 + 비공개(Private) 채널 사용 — backend/supabase/migrations 의 realtime 정책 필요 */
 const PRIVATE = import.meta.env.VITE_SUPABASE_PRIVATE_CHANNELS === 'true'
 let client: SupabaseClient | null = null
-export const getSupabase = () => (supabaseConfigured ? (client ??= createClient(URL!, KEY!, { realtime: { params: { eventsPerSecond: 30 } } })) : null)
+export const getSupabase = () => (supabaseConfigured ? (client ??= createClient(URL!, KEY!, { auth: { detectSessionInUrl: true, persistSession: true, flowType: 'pkce' }, realtime: { params: { eventsPerSecond: 30 } } })) : null)
 
 /** Supabase Realtime: broadcast(게임 메시지) + presence(접속 상태) */
 export class SupabaseTransport implements Transport {

@@ -3,7 +3,7 @@
 // 이메일은 받지 않아요 (Supabase Kakao 설정에서 "Allow users without an email" 켜기)
 import { getSupabase, supabaseConfigured } from '../net/transports'
 
-export const kakaoAvailable = supabaseConfigured && import.meta.env.VITE_KAKAO_LOGIN === 'true'
+export const kakaoAvailable = supabaseConfigured && import.meta.env.VITE_KAKAO_LOGIN !== 'false'
 
 export interface KakaoProfile { id: string; nickname: string; avatarUrl?: string }
 
