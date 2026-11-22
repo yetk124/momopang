@@ -35,7 +35,7 @@ export const GAMES: GameMeta[] = [
     scoring: ['사과 1개당 1점', '한 번에 5개 이상 +3', '3연속 성공 +2'],
   },
   {
-    id: 'halli', name: '할리갈리', en: 'Fruit Bell', tagline: '과일 5개면 종 치기!', kind: '실시간', time: '90초', durationMs: 90_000, tint: '#FFEFD9',
+    id: 'halli', name: '과일떙!', en: 'Fruit Bell', tagline: '과일 5개면 종 치기!', kind: '실시간', time: '90초', durationMs: 90_000, tint: '#FFEFD9',
     rules: ['번갈아 카드를 한 장씩 뒤집어요', '같은 과일이 정확히 5개면 종을 땡!', '3.5초 안에 안 뒤집으면 자동으로 넘어가요'],
     scoring: ['맞게 치면 +1', '잘못 치면 −1', '3연속 성공 +1'],
   },
