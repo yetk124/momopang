@@ -1,0 +1,19 @@
+{
+  "name": "duo-play-backend",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "login": "supabase login",
+    "link": "supabase link --project-ref $SUPABASE_PROJECT_REF",
+    "db:push": "supabase db push",
+    "db:reset:local": "supabase db reset",
+    "start:local": "supabase start",
+    "stop:local": "supabase stop",
+    "functions:serve": "supabase functions serve --env-file ./supabase/.env.local",
+    "functions:deploy": "supabase functions deploy dict-check",
+    "secrets:set": "supabase secrets set --env-file ./supabase/.env.local"
+  },
+  "devDependencies": {
+    "supabase": "^2.0.0"
+  }
+}

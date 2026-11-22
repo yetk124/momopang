@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: #F3EEF8;
+  color: #3B3541;
+  font-family: Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+* { min-width: 0; }
+button { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.no-select { user-select: none; -webkit-user-select: none; touch-action: none; }
+.font-round { font-family: Jua, Pretendard, "Noto Sans KR", system-ui, sans-serif; letter-spacing: .01em; }
+
+.confetti { position: absolute; top: -12px; width: 8px; height: 13px; border-radius: 2px; animation-name: fall; animation-timing-function: linear; animation-iteration-count: infinite; }
+@keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+.app-bg {
+  background:
+    radial-gradient(900px 400px at 110% -10%, #FDE6F0 0%, transparent 60%),
+    radial-gradient(700px 400px at -20% 0%, #EDE7FF 0%, transparent 55%),
+    #FFF7EE;
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+
+/* 눌리는 카드: 평소엔 원래 디자인 그대로, 누르는 동안만 살짝 어두워지며 눌림 */
+.press { transition: transform .1s ease, filter .1s ease; -webkit-tap-highlight-color: transparent; }
+.press:active { transform: scale(.96); filter: brightness(.9); }
+
+@keyframes boomIn { 0% { transform: scale(.2) rotate(-12deg); opacity: 0 } 60% { transform: scale(1.12) rotate(3deg); opacity: 1 } 100% { transform: scale(1) rotate(0) } }
+@keyframes fadeup { from { transform: translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }
+@keyframes sheetUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
+
+/* 스크롤바 숨김 (스크롤은 그대로 가능) */
+html, body, * { scrollbar-width: none; -ms-overflow-style: none; }
+::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+/* 볼륨 슬라이더 */
+input[type=range].vol { -webkit-appearance: none; appearance: none; height: 8px; border-radius: 999px; background: linear-gradient(to right, #A897F5 var(--p), #ECE7FF var(--p)); outline: none; }
+input[type=range].vol::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 3px solid #8F7BEA; box-shadow: 0 2px 6px rgba(120,90,160,.3); cursor: pointer; }
+input[type=range].vol::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 3px solid #8F7BEA; cursor: pointer; }
+input[type=range].vol:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px #DCD3FF; }

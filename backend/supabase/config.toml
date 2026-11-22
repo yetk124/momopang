@@ -1,0 +1,29 @@
+# Supabase CLI 설정 (로컬 개발용). `supabase init` 으로 만든 기본값에서 필요한 것만 남김.
+project_id = "duo-play"
+
+[api]
+enabled = true
+port = 54321
+
+[db]
+port = 54322
+major_version = 15
+
+[realtime]
+enabled = true
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+# 비공개 실시간 채널(익명 로그인)을 쓰려면 true
+enable_anonymous_sign_ins = false
+
+# 카카오 로그인 (대시보드에서 Client ID/Secret 입력, 이메일 없이 허용)
+[auth.external.kakao]
+enabled = false
+client_id = "env(KAKAO_REST_API_KEY)"
+secret = "env(KAKAO_CLIENT_SECRET)"
+
+[functions.dict-check]
+verify_jwt = false
