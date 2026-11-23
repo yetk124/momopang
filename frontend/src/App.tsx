@@ -13,6 +13,7 @@ import { toAvatarId } from './components/Avatar'
 import { restoreSession, useStore, type Screen } from './store'
 import { armBgm, setMusicMode } from './lib/bgm'
 import { initAnalytics, trackScreen } from './lib/analytics'
+import { setPlaying } from './lib/live'
 
 export default function App() {
   const screen = useStore((s) => s.screen)
@@ -23,6 +24,8 @@ export default function App() {
   const phase = useStore((s) => s.room?.phase)
   const game = useStore((s) => s.room?.session?.game ?? s.room?.result?.game ?? s.room?.game)
   useEffect(() => { setMusicMode(phase === 'playing' || phase === 'countdown' ? 'game' : 'menu') }, [phase])
+  // 실시간 플레이 인원: 게임 중일 때만 "○○ 하는 중" 표시
+  useEffect(() => { setPlaying(screen === 'room' && (phase === 'playing' || phase === 'countdown') && game ? game : null) }, [screen, phase, game])
   // GA 화면 이름: home, history, settings, onboard, lobby, game_apple, result_apple …
   useEffect(() => {
     const name = screen !== 'room' ? screen : phase === 'playing' ? `game_${game}` : phase === 'result' ? `result_${game}` : 'lobby'

@@ -13,6 +13,7 @@ import WORDMARK_IMG from '../assets/wordmark.webp'
 import TROPHY_IMG from '../assets/trophy-crown.webp'
 import { sfx } from '../lib/sfx'
 import { MatchSheet } from './Match'
+import { useLiveCounts } from '../lib/live'
 
 /** 게임 목록에서 누르면 나오는 짧은 소개 */
 export function GameRules({ g }: { g: GameMeta }) {
@@ -97,6 +98,17 @@ function GameGuide({ g, onDone }: { g: GameMeta; onDone: () => void }) {
   )
 }
 
+/** 실시간 표시 불: 사람이 있으면 초록색으로 깜빡, 없으면 회색 */
+function LiveDot({ on, small = false }: { on: boolean; small?: boolean }) {
+  const size = small ? 'w-1.5 h-1.5' : 'w-2 h-2'
+  return (
+    <span className={`relative inline-flex ${size}`} aria-hidden>
+      {on && <span className="absolute inset-0 rounded-full bg-[#40C057] opacity-70 animate-ping" />}
+      <span className={`relative inline-flex ${size} rounded-full ${on ? 'bg-[#40C057]' : 'bg-[#C9C4D6]'}`} />
+    </span>
+  )
+}
+
 function IcDice({ className = '' }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -113,6 +125,7 @@ export function Home() {
   const [joinOpen, setJoinOpen] = useState(false)
   const [matchOpen, setMatchOpen] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
+  const live = useLiveCounts()
   const [profileOpen, setProfileOpen] = useState(false)
   const [info, setInfo] = useState<GameMeta | null>(null)
   const [code, setCode] = useState('')
@@ -147,7 +160,7 @@ export function Home() {
         <img src={WORDMARK_IMG} alt="모모팡" className="mx-auto h-9 w-auto mb-1.5 select-none" draggable={false} />
         <h1 className="font-round text-[38px] leading-none text-ink">함께놀자!</h1>
         <p className="mt-2 text-ink-soft font-semibold text-[15px]">전화하면서, 게임도 하고 더 가까워져요 💜</p>
-        <div className="mx-auto mt-2 mb-1 w-full" style={{ maxWidth: 'min(320px, calc(24dvh * 1.9))' }}><Hero className="w-full h-auto" /></div>
+        <div className="mx-auto mt-2 mb-4 w-full" style={{ maxWidth: 'min(285px, calc(21dvh * 1.9))' }}><Hero className="w-full h-auto" /></div>
         <div className="mt-2 flex flex-col gap-2">
           <div ref={ctaRef}>
             <Button data-track="cta_hero" onClick={() => createRoom(defaultMode())} disabled={busy} className="w-full text-[17px] min-h-[58px]">
@@ -157,14 +170,14 @@ export function Home() {
           <p className="text-[12px] text-ink-mute -mt-0.5">가입 없이 무료 · 방 만들고 링크 보내면 끝</p>
           <div className="grid grid-cols-3 gap-2">
             {([
-              { key: 'cta_join_code', label: '코드로 참여', bg: '#ECE7FF', fg: '#7562D6', icon: <IcUsers className="w-[22px] h-[22px]" />, onClick: () => { setError(null); setJoinOpen(true) }, off: false },
-              { key: 'cta_random_match', label: '랜덤 매칭', bg: '#FFF0C7', fg: '#C98A00', icon: <IcDice className="w-[22px] h-[22px]" />, onClick: () => { setError(null); setMatchOpen(true) }, off: busy },
-              { key: 'cta_bot', label: '봇이랑 연습', bg: '#E2F4DC', fg: '#4E9A3F', icon: <IcBot className="w-[22px] h-[22px]" />, onClick: () => createRoom('bot'), off: busy },
+              { key: 'cta_join_code', label: '코드로 참여', bg: '#ECE6FF', fg: '#7562D6', icon: <IcUsers className="w-5 h-5" />, onClick: () => { setError(null); setJoinOpen(true) }, off: false },
+              { key: 'cta_random_match', label: '랜덤 매칭', bg: '#FFF1C9', fg: '#C98A00', icon: <IcDice className="w-5 h-5" />, onClick: () => { setError(null); setMatchOpen(true) }, off: busy },
+              { key: 'cta_bot', label: '봇이랑 연습', bg: '#DFF3D8', fg: '#4E9A3F', icon: <IcBot className="w-5 h-5" />, onClick: () => createRoom('bot'), off: busy },
             ]).map((b) => (
               <button key={b.key} type="button" data-track={b.key} onClick={b.onClick} disabled={b.off}
-                className="press rounded-2xl bg-white/90 shadow-soft py-2.5 flex flex-col items-center gap-1.5 disabled:opacity-50 transition">
-                <span className="w-10 h-10 rounded-full grid place-items-center" style={{ background: b.bg, color: b.fg }}>{b.icon}</span>
-                <span className="text-[13px] font-bold text-ink whitespace-nowrap">{b.label}</span>
+                className="press rounded-2xl py-3 flex flex-col items-center gap-1.5 disabled:opacity-50" style={{ background: b.bg }}>
+                <span className="w-9 h-9 rounded-full bg-white/90 grid place-items-center" style={{ color: b.fg }}>{b.icon}</span>
+                <span className="text-[13px] font-bold whitespace-nowrap" style={{ color: b.fg }}>{b.label}</span>
               </button>
             ))}
           </div>
@@ -184,14 +197,20 @@ export function Home() {
       <section className="px-5 mt-6">
         <div className="flex items-end justify-between mb-2.5">
           <h2 className="text-[17px] font-extrabold">게임 목록</h2>
-          <span className="text-[13px] text-ink-mute">탭하면 규칙을 볼 수 있어요</span>
+          <span className="flex items-center gap-1.5 text-[13px] font-bold text-ink-soft" aria-live="polite">
+            <LiveDot on={live.total > 0} /><span>지금 <span className="tabular-nums">{live.total}</span>명 플레이 중</span>
+          </span>
         </div>
         <div className="flex flex-wrap justify-center gap-2.5">
           {GAMES.map((g) => (
-            <button key={g.id} onClick={() => { setGuideOpen(false); setInfo(g) }} className="press w-[calc((100%-1.25rem)/3)] rounded-2xl py-3 px-2 flex flex-col items-center justify-center gap-1 shadow-soft" onClickCapture={() => sfx.tap()} style={{ background: g.tint }}>
-              <GameIcon id={g.id} className="w-10 h-10" />
+            <button key={g.id} onClick={() => { setGuideOpen(false); setInfo(g) }} className="press relative w-[calc((100%-1.25rem)/3)] rounded-2xl py-3 px-2 flex flex-col items-center justify-center gap-1 bg-white shadow-[0_2px_10px_rgba(186,140,100,.10)]" onClickCapture={() => sfx.tap()}>
+              <span className="absolute top-1.5 right-1.5 flex items-center gap-1 rounded-full bg-white pl-1.5 pr-[7px] py-[3px] text-[11px] leading-none font-extrabold tabular-nums shadow-[0_1px_3px_rgba(117,98,214,.12)]" aria-label={`지금 ${live.counts[g.id] ?? 0}명 플레이 중`}>
+                <LiveDot on={(live.counts[g.id] ?? 0) > 0} small />
+                <span className={(live.counts[g.id] ?? 0) > 0 ? 'text-[#2F9E44]' : 'text-ink-mute'}>{live.counts[g.id] ?? 0}</span>
+              </span>
+              <span className="w-12 h-12 rounded-2xl grid place-items-center" style={{ background: g.tint }}><GameIcon id={g.id} className="w-9 h-9" /></span>
               <span className="text-[14px] font-bold">{g.name}</span>
-              <span className="text-[11px] font-semibold text-ink-soft -mt-1">{g.kind}</span>
+              <span className="text-[11px] font-semibold text-ink-mute -mt-1">{g.kind}</span>
             </button>
           ))}
         </div>
