@@ -44,6 +44,8 @@ interface State {
   setError: (e: string | null) => void
   createRoom: (mode: Mode, game?: GameId, restore?: { code: string; state: RoomState | null }) => Promise<void>
   joinRoom: (code: string, mode?: Mode) => Promise<void>
+  /** 랜덤 매칭 성공 → 방장은 방 생성, 참가자는 입장 (둘 다 자동 준비) */
+  enterMatch: (r: { code: string; game: GameId; isHost: boolean }) => Promise<void>
   leaveRoom: (msg?: string) => void
   intent: (i: Intent) => void
   act: (a: unknown) => void
@@ -57,6 +59,8 @@ let bot: Bot | null = null
 let seq = 0
 let pingTimer: ReturnType<typeof setInterval> | null = null
 let bestRtt = Infinity
+/** 랜덤 매칭으로 들어온 방이면 둘 다 들어왔을 때 자동으로 준비 */
+let matchAuto = false
 type EphListener = (from: string, k: string, d: any) => void
 const ephListeners = new Set<EphListener>()
 export const onEph = (fn: EphListener) => { ephListeners.add(fn); return () => { ephListeners.delete(fn) } }
@@ -190,6 +194,8 @@ export const useStore = create<State>((set, get) => ({
       await tr.connect(code, me)
       tr.send({ t: 'hello', from: me.id })
       tr.send({ t: 'intent', from: me.id, seq: ++seq, i: { type: 'join', player: me } })
+      // 방장이 아직 채널에 붙는 중일 수 있어 몇 번 더 알림
+      for (const ms of [1200, 2500, 4000]) setTimeout(() => { if (transport === tr && !get().room) { tr.send({ t: 'hello', from: me.id }); tr.send({ t: 'intent', from: me.id, seq: ++seq, i: { type: 'join', player: me } }) } }, ms)
       const ping = () => tr.send({ t: 'ping', from: me.id, t0: Date.now() })
       ping(); setTimeout(ping, 300); setTimeout(ping, 800)
       pingTimer = setInterval(ping, 5000)
@@ -213,7 +219,18 @@ export const useStore = create<State>((set, get) => ({
     }
   },
 
+  async enterMatch(r) {
+    matchAuto = true
+    track('match_success', { game: r.game, role: r.isHost ? 'host' : 'guest' })
+    if (r.isHost) { await get().createRoom(defaultMode(), r.game, { code: r.code, state: null }); return }
+    await new Promise((res) => setTimeout(res, 900))
+    await get().joinRoom(r.code)
+    if (!get().room) { set({ error: null }); await new Promise((res) => setTimeout(res, 1200)); await get().joinRoom(r.code) }
+    if (!get().room) { matchAuto = false; set({ error: '상대와 연결하지 못했어요. 다시 매칭해 주세요' }) }
+  },
+
   leaveRoom(msg) {
+    matchAuto = false
     const { room, me, isHost } = get()
     if (room) track('room_leave', { phase: room.phase, game: room.session?.game ?? room.game ?? '' })
     if (room && transport) {
@@ -257,6 +274,11 @@ function onRoom(s: RoomState) {
   const ack = s.session?.ack[st.me.id] ?? 0
   const pending = prev?.session?.id === s.session?.id ? st.pending.filter((p) => p.seq > ack) : []
   useStore.setState({ room: s, pending })
+  // 랜덤 매칭: 둘 다 들어오고 게임이 정해지면 자동 준비 → 카운트다운
+  if (matchAuto && s.phase === 'lobby' && s.game && s.players.length === 2) {
+    const mine = s.players.find((p) => p.id === st.me.id)
+    if (mine && !mine.ready) { matchAuto = false; setTimeout(() => useStore.getState().intent({ type: 'ready', v: true }), 300) }
+  }
 
   if (s.closed && !st.isHost) { useStore.getState().leaveRoom('방장이 방을 닫았어요'); return }
   if (prev && !st.isHost && prev.players.some((p) => p.id === st.me.id) && !s.players.some((p) => p.id === st.me.id)) {

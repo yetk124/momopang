@@ -4,8 +4,10 @@ import type { Msg, PlayerInfo, Transport } from './protocol'
 
 // 공개돼도 되는 값(프로젝트 URL, publishable 키)이라 기본값으로 둬요. 환경변수가 있으면 그걸 우선 사용.
 // ⚠️ 비밀 키(sb_secret_, service_role)는 절대 여기에 넣지 마세요.
-const URL = ((import.meta.env.VITE_SUPABASE_URL as string | undefined) || 'https://goqikjhpjrhlygkrlyhw.supabase.co').trim()
-const KEY = ((import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) || 'sb_publishable_BnP2C9NyGPOe2lIXRliyPA_y_MFzu6h').trim()
+// 아티팩트 미리보기(single 빌드)는 외부 연결이 막혀 있어 항상 데모 모드
+const DEMO_ONLY = import.meta.env.MODE === 'single'
+const URL = DEMO_ONLY ? '' : ((import.meta.env.VITE_SUPABASE_URL as string | undefined) || 'https://goqikjhpjrhlygkrlyhw.supabase.co').trim()
+const KEY = DEMO_ONLY ? '' : ((import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) || 'sb_publishable_BnP2C9NyGPOe2lIXRliyPA_y_MFzu6h').trim()
 export const supabaseConfigured = !!(URL && KEY)
 /** true면 익명 로그인 + 비공개(Private) 채널 사용 — backend/supabase/migrations 의 realtime 정책 필요 */
 const PRIVATE = import.meta.env.VITE_SUPABASE_PRIVATE_CHANNELS === 'true'

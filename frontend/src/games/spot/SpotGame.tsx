@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { sfx } from '../../lib/sfx'
 import { useStore } from '../../store'
 import type { GameProps } from '../rush/RushGame'
-import { puzzleOf, type SpotState } from './engine'
+import { puzzleOf, snapTap, type SpotState } from './engine'
 
 export function SpotGame({ state, t, meId }: GameProps<SpotState>) {
   const act = useStore((s) => s.act)
@@ -42,10 +42,14 @@ export function SpotGame({ state, t, meId }: GameProps<SpotState>) {
 
   const tap = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault()
-    if (locked) return
+    if (!e.isPrimary) return
+    if (locked) { sfx.tap(); setShake((x) => x + 1); return }
     const r = e.currentTarget.getBoundingClientRect()
     const sx = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height
-    act({ x: mx(sx), y })
+    if (sx < 0 || sx > 1 || y < 0 || y > 1) return
+    // 손가락 크기만큼 가까운 정답으로 보정해서 보냄
+    const p = snapTap(state, mx(sx), y, r.width, r.height)
+    act(p)
   }
 
   const panel = (src: string, label: string) => (

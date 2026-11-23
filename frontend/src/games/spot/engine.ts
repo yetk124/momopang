@@ -3,7 +3,7 @@ import { clone, type Engine } from '../types'
 import { SPOT_PUZZLES } from './puzzles'
 
 export const SPOT_TIME = 90_000
-export const MISS_LOCK_MS = 1200
+export const MISS_LOCK_MS = 700
 
 export interface SpotPlayer { score: number; found: number; miss: number; lockUntil: number }
 export interface SpotState {
@@ -19,16 +19,49 @@ export type SpotAction = { x: number; y: number }
 
 export const puzzleOf = (s: SpotState) => SPOT_PUZZLES[s.puzzle] ?? SPOT_PUZZLES[0]
 
-export function hitTest(s: SpotState, x: number, y: number) {
+/** 정답 판정 범위(원본 크기보다 넉넉하게 + 최소 크기 보장) */
+const radius = (d: { rx: number; ry: number }) => ({ rx: Math.max(d.rx * 1.5, 0.07), ry: Math.max(d.ry * 1.5, 0.055) })
+
+/** 아직 못 찾은 정답 중 범위 안에 있는 것 (없으면 -1). includeFound면 이미 찾은 것도 포함 */
+export function hitTest(s: SpotState, x: number, y: number, includeFound = false) {
   const diffs = puzzleOf(s).diffs
   let best = -1, bestD = Infinity
   diffs.forEach((d, i) => {
-    if (s.found[i] !== undefined) return
-    const rx = Math.max(d.rx * 1.3, 0.05), ry = Math.max(d.ry * 1.3, 0.04)
+    if (!includeFound && s.found[i] !== undefined) return
+    const { rx, ry } = radius(d)
     const v = ((x - d.x) / rx) ** 2 + ((y - d.y) / ry) ** 2
     if (v <= 1 && v < bestD) { best = i; bestD = v }
   })
   return best
+}
+
+/** 화면에서 손가락 크기(px)만큼 여유를 두고 가장 가까운 정답을 찾음 → 그 중심 좌표로 보정 */
+export function snapTap(s: SpotState, x: number, y: number, wPx: number, hPx: number, tolPx = 26) {
+  const diffs = puzzleOf(s).diffs
+  let best = -1, bestD = Infinity
+  diffs.forEach((d, i) => {
+    if (s.found[i] !== undefined) return
+    const { rx, ry } = radius(d)
+    // 정답 타원 가장자리까지의 대략적인 픽셀 거리
+    const dx = Math.max(0, Math.abs(x - d.x) * wPx - rx * wPx), dy = Math.max(0, Math.abs(y - d.y) * hPx - ry * hPx)
+    const dist = Math.hypot(dx, dy)
+    if (dist <= tolPx && dist < bestD) { best = i; bestD = dist }
+  })
+  return best >= 0 ? { x: diffs[best].x, y: diffs[best].y } : { x, y }
+}
+
+/** 최근에 나온 그림은 피해서 고르기 (방장 기기에만 기록) */
+const RECENT_KEY = 'momopang.spot.recent'
+function pickPuzzle(r: () => number) {
+  const n = SPOT_PUZZLES.length
+  let recent: number[] = []
+  try { recent = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]') } catch { /* noop */ }
+  const keep = Math.min(Math.max(n - 2, 0), 4) // 최근 4개(그림이 적으면 n-2개)는 제외
+  const avoid = new Set(recent.slice(-keep))
+  const pool = Array.from({ length: n }, (_, i) => i).filter((i) => !avoid.has(i))
+  const pick = (pool.length ? pool : Array.from({ length: n }, (_, i) => i))[Math.floor(r() * (pool.length || n))]
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify([...recent, pick].slice(-8))) } catch { /* noop */ }
+  return pick
 }
 
 export const spotEngine: Engine<SpotState, SpotAction> = {
@@ -38,14 +71,17 @@ export const spotEngine: Engine<SpotState, SpotAction> = {
     const r = mulberry32(seed)
     const p: Record<string, SpotPlayer> = {}
     for (const id of players) p[id] = { score: 0, found: 0, miss: 0, lockUntil: 0 }
-    return { puzzle: Math.floor(r() * SPOT_PUZZLES.length), mirror: r() < 0.5, found: {}, p, last: null }
+    return { puzzle: pickPuzzle(r), mirror: r() < 0.5, found: {}, p, last: null }
   },
   apply(s, pid, a, t) {
     const me0 = s.p[pid]
     if (!me0 || t >= SPOT_TIME || t < me0.lockUntil) return null
     if (!(a.x >= 0 && a.x <= 1 && a.y >= 0 && a.y <= 1)) return null
+    const idx0 = hitTest(s, a.x, a.y)
+    // 이미 찾은 곳(상대가 방금 찾은 곳 포함)을 누르면 틀린 걸로 치지 않고 무시
+    if (idx0 < 0 && hitTest(s, a.x, a.y, true) >= 0) return null
     const n = clone(s); const me = n.p[pid]
-    const idx = hitTest(n, a.x, a.y)
+    const idx = idx0
     if (idx >= 0) { n.found[idx] = pid; me.score += 1; me.found += 1 }
     else { me.miss += 1; me.lockUntil = t + MISS_LOCK_MS }
     n.last = { pid, idx, x: a.x, y: a.y, t }

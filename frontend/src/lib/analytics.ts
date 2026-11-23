@@ -11,7 +11,7 @@ import { settings, useSettings } from './settings'
  * - ui_click                : 누른 버튼 이름 + 그때의 화면
  * - room_create, room_join, game_select, game_start, game_end, rematch_request, room_leave
  */
-const GA_ID = ((import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined) || 'G-X04RFE2HWW').trim()
+const GA_ID = import.meta.env.MODE === 'single' ? '' : ((import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined) || 'G-X04RFE2HWW').trim()
 export const analyticsAvailable = !!GA_ID
 
 declare global { interface Window { dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void } }
