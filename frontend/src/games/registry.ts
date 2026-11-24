@@ -35,7 +35,7 @@ export interface GameMeta {
   tint: string // 카드 배경
 }
 
-export const GAMES: GameMeta[] = [
+const ALL_GAMES: GameMeta[] = [
   {
     id: 'apple', name: '사과게임', en: 'Number 10', tagline: '합이 10이 되게 드래그!', kind: '경쟁', time: '1분', durationMs: 60_000, tint: '#FFE9E4',
     rules: ['같은 사과 보드를 둘이 함께 써요', '드래그로 네모를 그려 숫자 합을 10으로', '먼저 지운 사람이 사과를 가져가요', '더 만들 10이 없으면 새 사과판이 나와요'],
@@ -130,9 +130,9 @@ export const GAMES: GameMeta[] = [
   {
     id: 'omok', name: '오목', en: 'Gomoku', tagline: '다섯 개를 먼저 이어요!', kind: '전략', time: '한 수 20초', durationMs: 0, tint: '#FCEBD2',
     rules: ['흑부터 번갈아 돌을 둬요', '가로·세로·대각선 5개를 먼저 이으면 승리', '한 수 20초 · 시간 초과 3번이면 패배'],
-    scoring: ['오목 완성하면 승리', '한 번 누르면 미리보기, 한 번 더 누르면 착수', '판이 꽉 차면 무승부'],
+    scoring: ['오목 완성하면 승리', '같은 자리를 두 번 탭하면 착수', '판이 꽉 차면 무승부'],
     desc: '번갈아 흑돌과 백돌을 두면서 가로·세로·대각선으로 5개를 먼저 잇는 사람이 이겨요.',
-    guide: [{ e: '⚫⚪', t: '번갈아 두기', d: '흑부터 시작해요. 자리를 한 번 누르면 미리보기, 같은 자리를 한 번 더 누르면 돌을 둬요.' }, { e: '⚫⚫⚫⚫⚫', t: '5개를 이으면 승리', d: '가로·세로·대각선 어느 쪽이든 5개를 먼저 이으면 이겨요. 상대 줄도 막아야 해요!' }],
+    guide: [{ e: '⚫⚪', t: '번갈아 두기', d: '흑부터 시작해요. 같은 자리를 두 번 탭하면 돌을 둬요. 첫 탭에 미리보기가 보여요.' }, { e: '⚫⚫⚫⚫⚫', t: '5개를 이으면 승리', d: '가로·세로·대각선 어느 쪽이든 5개를 먼저 이으면 이겨요. 상대 줄도 막아야 해요!' }],
   },
   {
     id: 'balance', name: '밸런스 게임', en: 'This or That', tagline: '너라면 뭐 골라?', kind: '대화', time: '10문제', durationMs: 0, tint: '#F6ECFF',
@@ -142,5 +142,8 @@ export const GAMES: GameMeta[] = [
     guide: [{ e: '🅰️🆚🅱️', t: '하나만 골라요', d: '시간 제한은 없어요. 둘 다 고를 때까지 상대 선택은 안 보여요.' }, { e: '💕🔥', t: '공개하고 수다', d: '같으면 하트, 다르면 불꽃! 왜 골랐는지 얘기하다가 누구든 다음 질문을 누르면 넘어가요.' }],
   },
 ]
+/** 화면에 보이는 순서 (새 게임 3개를 위쪽에) */
+const ORDER: GameId[] = ['apple', 'halli', 'draw', 'suika', 'omok', 'balance', 'rush', 'block', 'spot', 'word', 'quiz', 'bomb', 'memory', 'pairs', 'merge']
+export const GAMES: GameMeta[] = ORDER.map((id) => ALL_GAMES.find((g) => g.id === id)!).filter(Boolean)
 export const META = Object.fromEntries(GAMES.map((g) => [g.id, g])) as Record<GameId, GameMeta>
 

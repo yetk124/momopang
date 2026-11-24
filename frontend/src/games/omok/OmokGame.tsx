@@ -9,7 +9,7 @@ const M = 10, GAP = 10, SIZE = M * 2 + GAP * (OMOK_N - 1) // 160
 const STARS = [[3, 3], [3, 11], [11, 3], [11, 11], [7, 7]]
 const pos = (i: number) => ({ x: M + (i % OMOK_N) * GAP, y: M + Math.floor(i / OMOK_N) * GAP })
 
-/** 오목: 한 번 누르면 미리보기, 같은 자리를 한 번 더 누르면(또는 '여기에 두기') 착수 */
+/** 오목: 첫 탭은 미리보기, 같은 자리를 한 번 더 탭하면 착수 */
 export function OmokGame({ state, t, meId, oppId }: GameProps<OmokState>) {
   const act = useStore((s) => s.act)
   const players = useStore((s) => s.room?.players ?? [])
@@ -41,7 +41,7 @@ export function OmokGame({ state, t, meId, oppId }: GameProps<OmokState>) {
   const status = state.winner
     ? (state.winner === meId ? '오목 완성! 🎉' : `${oppName}님이 오목을 완성했어요`)
     : t < state.turnStart ? '곧 시작해요'
-    : myTurn ? (ghost !== null ? '한 번 더 누르면 돌을 둬요' : `내 차례 · ${colorName(myColor)}돌을 둘 자리를 골라요`)
+    : myTurn ? (ghost !== null ? '한 번 더 누르면 착수!' : `내 차례 · ${colorName(myColor)}돌을 둘 자리를 두 번 탭`)
     : `${oppName}님 차례 · 생각 중…`
   const winSet = new Set(state.line ?? [])
 
@@ -72,11 +72,9 @@ export function OmokGame({ state, t, meId, oppId }: GameProps<OmokState>) {
           {ghost !== null && !state.board[ghost] && (() => { const p = pos(ghost); return <g opacity="0.55"><StoneSvg x={p.x} y={p.y} v={myColor} /></g> })()}
         </svg>
       </Fit>
-      {myTurn && ghost !== null ? (
-        <button type="button" onClick={() => place(ghost)} className="press mx-auto rounded-full bg-lav-400 text-white font-extrabold px-6 py-2.5 text-[15px] shadow-pop">여기에 두기</button>
-      ) : (
-        <p className="mx-auto rounded-2xl bg-lav-50 text-lav-600 font-bold px-4 py-2.5 text-[13px] text-center">가로·세로·대각선 5개를 먼저 이으면 승리 · 한 수 20초</p>
-      )}
+      <p className="mx-auto rounded-2xl bg-lav-50 text-lav-600 font-bold px-4 py-2.5 text-[13px] text-center">
+        {myTurn && ghost !== null ? '같은 자리를 한 번 더 누르면 돌을 둬요 · 다른 곳을 누르면 옮겨져요' : '가로·세로·대각선 5개를 먼저 이으면 승리 · 한 수 20초'}
+      </p>
     </div>
   )
 }

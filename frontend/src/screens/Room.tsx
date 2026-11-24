@@ -96,6 +96,18 @@ function Lobby({ room }: { room: RoomState }) {
             <span className="text-[11px] text-ink-mute">바꾸면 둘 다 준비가 풀려요</span>
           </div>
           <div className="grid grid-cols-4 gap-1.5">
+            <button onClick={() => {
+                sfx.tap()
+                // 지금 고른 게임은 빼고 랜덤으로 하나
+                const pool = GAMES.filter((x) => x.id !== room.game)
+                const pick = pool[Math.floor(Math.random() * pool.length)]
+                if (pick) intent({ type: 'select', game: pick.id })
+              }}
+              aria-label="아무 게임이나 랜덤으로 고르기" data-track="lobby_random_game"
+              style={{ paddingBlock: 'clamp(6px, 1.4svh, 14px)' }} className="press rounded-xl px-0.5 flex flex-col items-center justify-center gap-1 bg-white/70 border-2 border-dashed border-lav-200">
+              <GameIcon id="any" className="w-[clamp(28px,4.6svh,42px)] h-[clamp(28px,4.6svh,42px)]" />
+              <span className="text-[clamp(11px,1.5svh,13px)] font-bold leading-tight whitespace-nowrap text-lav-500">아무거나</span>
+            </button>
             {GAMES.map((x) => {
               const on = room.game === x.id
               return (
