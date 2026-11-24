@@ -126,6 +126,7 @@ export function Home() {
   const [matchOpen, setMatchOpen] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
   const live = useLiveCounts()
+  const kid = useSettings((s) => s.kid === true)
   const [profileOpen, setProfileOpen] = useState(false)
   const [info, setInfo] = useState<GameMeta | null>(null)
   const [code, setCode] = useState('')
@@ -154,10 +155,10 @@ export function Home() {
             </Button>
           </div>
           <p className="text-[12px] text-ink-mute -mt-0.5">가입 없이 무료 · 방 만들고 링크 보내면 끝</p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className={`grid ${kid ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
             {([
               { key: 'cta_join_code', label: '코드로 참여', bg: '#ECE6FF', fg: '#7562D6', icon: <IcUsers className="w-5 h-5" />, onClick: () => { setError(null); setJoinOpen(true) }, off: false },
-              { key: 'cta_random_match', label: '랜덤 매칭', bg: '#FFF1C9', fg: '#C98A00', icon: <IcDice className="w-5 h-5" />, onClick: () => { setError(null); setMatchOpen(true) }, off: busy },
+              ...(kid ? [] : [{ key: 'cta_random_match', label: '랜덤 매칭', bg: '#FFF1C9', fg: '#C98A00', icon: <IcDice className="w-5 h-5" />, onClick: () => { setError(null); setMatchOpen(true) }, off: busy }]),
               { key: 'cta_bot', label: '봇이랑 연습', bg: '#DFF3D8', fg: '#4E9A3F', icon: <IcBot className="w-5 h-5" />, onClick: () => createRoom('bot'), off: busy },
             ]).map((b) => (
               <button key={b.key} type="button" data-track={b.key} onClick={b.onClick} disabled={b.off}
@@ -195,7 +196,7 @@ export function Home() {
         </div>
       </section>
 
-      {analyticsAvailable && consent === null && (
+      {analyticsAvailable && consent === null && !kid && (
         <div className="fixed bottom-20 inset-x-0 z-40 flex justify-center px-4 pointer-events-none">
           <div className="w-full max-w-[408px] rounded-3xl bg-white shadow-card p-4 pointer-events-auto animate-fadeup" role="dialog" aria-label="사용 통계 수집 안내">
             <p className="font-extrabold text-[15px]">더 좋은 앱을 위해 사용 통계를 모아요</p>

@@ -21,12 +21,16 @@ export interface BalanceState {
 /** choice 0/1 = 투표, -1 = 다음 질문 */
 export type BalanceAction = { choice: number }
 
+/** 어린이가 있는 방이면 연애 질문 제외 (방장이 판 시작 직전에 설정) */
+let kidSafe = false
+export const setBalanceKidSafe = (v: boolean) => { kidSafe = v }
+
 /** 최근에 본 질문은 피해서 고르기 (방장 기기에 기록) */
 const SEEN_KEY = 'momopang.balance.seen'
 function pick(r: () => number) {
   let seen: number[] = []
   try { const v = JSON.parse(localStorage.getItem(SEEN_KEY) || '[]'); if (Array.isArray(v)) seen = v.filter((x) => Number.isInteger(x)) } catch { /* noop */ }
-  const all = BALANCE_QS.map((_, i) => i)
+  const all = BALANCE_QS.map((_, i) => i).filter((i) => !kidSafe || BALANCE_QS[i][0] !== '연애')
   let pool = all.filter((i) => !seen.includes(i))
   if (pool.length < BALANCE_COUNT * 2) { seen = []; pool = all }
   const out: number[] = []; let love = 0

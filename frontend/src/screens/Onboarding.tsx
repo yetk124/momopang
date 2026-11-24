@@ -3,6 +3,7 @@ import { AVATARS, Avatar, LIMITED_AVATARS, toAvatarId, type AvatarId } from '../
 import { UNLOCKS, loadProgress } from '../lib/unlocks'
 import { Button, TopBar } from '../components/ui'
 import { useStore } from '../store'
+import { useSettings } from '../lib/settings'
 import { currentKakao, kakaoAvailable, signInWithKakao, signOut, type KakaoProfile } from '../lib/auth'
 import { onKakaoLogin } from '../lib/account'
 import { getSupabase } from '../net/transports'
@@ -20,6 +21,7 @@ export function ProfileForm({ submitLabel, onDone, initialName }: { submitLabel:
   // 해금 진행도 (계정 동기화로 바뀔 수 있어 열 때마다 읽음)
   const [progress, setProgress] = useState(loadProgress)
   useEffect(() => { const id = setInterval(() => setProgress(loadProgress()), 1500); return () => clearInterval(id) }, [])
+  const kidMode = useSettings((s) => s.kid === true)
   const trimmed = name.trim()
   const bad = hasBadWord(trimmed)
   const valid = trimmed.length >= 1 && !bad
@@ -35,7 +37,7 @@ export function ProfileForm({ submitLabel, onDone, initialName }: { submitLabel:
           id="nick" value={name} onChange={(e) => setName(filterNickInput(e.target.value))} maxLength={10} spellCheck={false} autoComplete="off" placeholder="친구에게 보일 이름"
           className="w-full h-14 rounded-2xl bg-white border border-lav-100 px-4 text-[17px] font-semibold outline-none focus:border-lav-400 focus:ring-4 focus:ring-lav-100"
         />
-        <div className="mt-1.5 flex justify-between text-[13px]"><span className={bad ? 'text-[#C9433A] font-semibold' : 'text-ink-mute'}>{bad ? '사용할 수 없는 단어가 있어요' : '한글·영문·숫자만 쓸 수 있어요'}</span><span className="text-ink-mute">{name.length}/10</span></div>
+        <div className="mt-1.5 flex justify-between text-[13px]"><span className={bad ? 'text-[#C9433A] font-semibold' : 'text-ink-mute'}>{bad ? '사용할 수 없는 단어가 있어요' : kidMode ? '실명 대신 별명을 써요 · 한글·영문·숫자만' : '한글·영문·숫자만 쓸 수 있어요'}</span><span className="text-ink-mute">{name.length}/10</span></div>
       </div>
       <div>
         <p className="text-[14px] font-bold text-ink-soft mb-2">아바타</p>
@@ -93,6 +95,8 @@ export function Onboarding() {
   const [kakao, setKakao] = useState<KakaoProfile | null>(null)
   const [busy, setBusy] = useState(false)
   const showToast = useStore((s) => s.showToast)
+  const kid = useSettings((s) => s.kid)
+  const setSettings = useSettings((s) => s.set)
   // 카카오 로그인 후 돌아온 경우 → 프로필 단계로
   useEffect(() => {
     let done = false
@@ -141,6 +145,23 @@ export function Onboarding() {
         <p className="mt-3 text-ink-soft font-semibold text-[15px]">전화하면서, 게임도 하고 더 가까워져요</p>
       </div>
       <img src={HERO_IMG} alt="게임기를 든 곰돌이와 고양이" className="w-full max-w-[340px] h-auto animate-[floaty_4s_ease-in-out_infinite]" />
+      {kid === null ? (
+        <div className="w-full flex flex-col gap-2.5">
+          <p className="font-extrabold text-[17px] text-ink">시작하기 전에, 나이를 알려주세요</p>
+          <Button data-track="age_14plus" className="w-full" onClick={() => setSettings({ kid: false })}>만 14세 이상이에요</Button>
+          <Button variant="secondary" data-track="age_under14" className="w-full" onClick={() => setSettings({ kid: true })}>만 14세 미만이에요</Button>
+          <p className="text-[12px] text-ink-mute mt-1">만 14세 미만은 개인정보를 모으지 않는 어린이 모드로 이용해요</p>
+        </div>
+      ) : kid ? (
+        <div className="w-full flex flex-col gap-2.5">
+          <div className="rounded-2xl bg-mint-100/70 px-4 py-3 text-left">
+            <p className="font-extrabold text-[15px] text-ink">🧒 어린이 모드로 시작해요</p>
+            <p className="text-[13px] text-ink-soft mt-0.5">아는 친구랑, 그리고 말랑봇이랑 놀 수 있어요. 카카오 로그인과 랜덤 매칭은 쓸 수 없어요.</p>
+          </div>
+          <Button data-track="login_guest_kid" className="w-full" onClick={() => { setLoginType('guest'); setStep('profile') }}>시작하기</Button>
+          <button type="button" className="text-[12px] font-semibold text-ink-mute underline underline-offset-2" onClick={() => setSettings({ kid: null })}>나이를 잘못 골랐어요</button>
+        </div>
+      ) : (
       <div className="w-full flex flex-col gap-2.5">
         <button
           data-track="login_kakao" disabled={busy}
@@ -156,6 +177,7 @@ export function Onboarding() {
         <Button variant="secondary" data-track="login_guest" className="w-full" onClick={() => { setLoginType('guest'); setStep('profile') }}>가입 없이 게스트로 시작</Button>
         <p className="text-[12px] text-ink-mute mt-1">카카오로 시작하면 폰을 바꿔도 기록이 남아요{!kakaoAvailable && ' (곧 지원)'}</p>
       </div>
+      )}
     </div>
   )
 }

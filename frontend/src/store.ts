@@ -5,7 +5,7 @@ import { ENGINES, META } from './games/registry'
 import type { GameId } from './games/types'
 import { makeRoomCode } from './lib/rng'
 import { sfx } from './lib/sfx'
-import { settings } from './lib/settings'
+import { isKid, settings, useSettings } from './lib/settings'
 import { track } from './lib/analytics'
 import { isKakao, saveHistory, saveMyProfile, saveUnlocks } from './lib/account'
 import { duckMusic } from './lib/bgm'
@@ -108,7 +108,7 @@ const badPath = (() => { try { return import.meta.env.MODE !== 'single' && locat
 export const useStore = create<State>((set, get) => ({
   screen: badPath ? 'notfound' : profile0 ? 'home' : 'onboard',
   profile: profile0,
-  me: { id: getPlayerId(), nickname: profile0?.nickname ?? '', avatar: toAvatarId(profile0?.avatar ?? 'rabbit') },
+  me: { id: getPlayerId(), nickname: profile0?.nickname ?? '', avatar: toAvatarId(profile0?.avatar ?? 'rabbit'), kid: isKid() },
   mode: null,
   room: null,
   isHost: false,
@@ -317,7 +317,7 @@ function onRoom(s: RoomState) {
     void saveHistory(item) // 카카오 로그인 상태면 서버에도 저장
     duckMusic(2600)
     if (r.winnerId === me) sfx.win(); else if (r.winnerId) sfx.lose(); else sfx.draw()
-    if (st.mode === 'supabase') void recordGame(getDeviceId(), st.me.nickname, st.me.avatar, r.winnerId === me)
+    if (st.mode === 'supabase' && !isKid()) void recordGame(getDeviceId(), st.me.nickname, st.me.avatar, r.winnerId === me) // 어린이 모드는 랭킹에 안 올림
     // 한정판 아바타 해금 체크
     const fresh = recordProgress(r.game, item.outcome)
     useStore.setState({ unlockedNow: fresh })
@@ -353,3 +353,6 @@ setInterval(() => {
   const st = useStore.getState()
   if (st.hostAwaySince && st.room && Date.now() - st.hostAwaySince > 30_000) st.leaveRoom('방장과 연결이 끊겨 방을 나왔어요')
 }, 1000)
+
+// 어린이 모드가 바뀌면 내 플레이어 정보에도 반영
+useSettings.subscribe((st) => { const kid = st.kid === true; if (useStore.getState().me.kid !== kid) useStore.setState({ me: { ...useStore.getState().me, kid } }) })

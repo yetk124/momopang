@@ -64,7 +64,9 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 
 // ⚠️ 출시 전에 실제 정보로 바꿔주세요 (개인정보 보호법상 필수 항목)
 const PRIVACY_OWNER = '모모팡 운영자'
-const PRIVACY_EMAIL = '(문의 이메일을 입력해 주세요)'
+const PRIVACY_EMAIL = '919yeeun@naver.com'
+/** 공개하고 싶지 않으면 '' 로 비워두세요 (이메일만 표시돼요) */
+const PRIVACY_PHONE = '010-9342-2792'
 const PRIVACY_EFFECTIVE = '2026년 11월 24일'
 
 type Doc = 'privacy' | 'terms' | 'refund'
@@ -80,9 +82,9 @@ const DOCS: Record<Doc, { title: string; body: [string, string][] }> = {
       ['6. 국외 이전', '위탁 업체의 서버가 해외에 있어 아래와 같이 개인정보가 국외로 전송돼요.\n• Supabase Inc.(미국) · 프로필·게임 기록·접속 정보 · 서비스 이용 시 네트워크로 전송 · 위 3번 보유 기간까지\n• Vercel Inc.(미국) · 접속 기록(IP 주소, 브라우저 정보) · 접속 시 전송 · 업체 정책에 따른 기간\n• Google LLC(미국) · 익명 이용 기록, 기기·브라우저 정보 · 이용 중 전송 · 최대 14개월\n국외 이전을 원하지 않으면 이용을 멈추거나 회원 탈퇴할 수 있어요. 이용 통계는 설정에서 따로 끌 수 있어요.'],
       ['7. 이용 통계 · 자동 수집 장치', '서비스 개선을 위해 Google Analytics로 화면 이동, 머문 시간, 누른 버튼, 게임 시작·종료 같은 익명 이용 기록을 모아요. 닉네임과 플레이어 ID는 보내지 않고 광고에 쓰지 않아요. 이를 위해 브라우저 저장소와 쿠키를 써요. 첫 안내창의 \'보내지 않기\' 또는 설정 > 사용 통계 보내기에서 언제든 거부할 수 있고, 거부해도 이용에 제한이 없어요.'],
       ['8. 이용자의 권리', '언제든 자신의 개인정보를 확인·수정·삭제하거나 처리 정지를 요청할 수 있어요. 프로필은 설정에서 바로 바꿀 수 있고, 카카오 계정은 설정 > 내 계정 > 회원 탈퇴로 즉시 삭제돼요. 그 밖의 요청은 아래 연락처로 보내주시면 지체 없이 처리할게요.'],
-      ['9. 만 14세 미만', '모모팡은 만 14세 이상만 이용할 수 있어요. 만 14세 미만 아동의 개인정보는 알면서 수집하지 않으며, 확인되면 바로 삭제해요.'],
+      ['9. 만 14세 미만 (어린이 모드)', '만 14세 미만은 처음 시작할 때 고르는 어린이 모드로 이용해요. 어린이 모드에서는 카카오 로그인, 랜덤 매칭, 랭킹 등록, 이용 통계(Google Analytics)를 쓰지 않아 법정대리인 동의가 필요한 개인정보를 모으지 않아요. 친구와 게임할 때 닉네임과 아바타는 상대에게 보이고, 방 기록은 30일 뒤 자동으로 지워져요. 그래서 닉네임은 실명 대신 별명을 쓰도록 안내해요. 보호자는 아래 연락처로 기록 삭제를 요청할 수 있어요.'],
       ['10. 안전성 확보 조치', '모든 데이터는 암호화된 연결(HTTPS)로 주고받고, 데이터베이스는 본인 데이터만 볼 수 있게 접근을 제한해요. 관리용 비밀 키는 앱에 넣지 않고 서버에만 보관해요.'],
-      ['11. 개인정보 보호책임자', `개인정보와 관련한 문의, 불만, 피해 구제는 아래로 연락해 주세요.\n• 책임자: ${PRIVACY_OWNER}\n• 연락처: ${PRIVACY_EMAIL}\n개인정보 침해 신고·상담은 개인정보침해신고센터(국번 없이 118, privacy.kisa.or.kr)에도 할 수 있어요.`],
+      ['11. 개인정보 보호책임자', `개인정보와 관련한 문의, 불만, 피해 구제는 아래로 연락해 주세요.\n• 책임자: ${PRIVACY_OWNER}\n• 이메일: ${PRIVACY_EMAIL}\n${PRIVACY_PHONE ? `• 전화: ${PRIVACY_PHONE}\n` : ''}개인정보 침해 신고·상담은 개인정보침해신고센터(국번 없이 118, privacy.kisa.or.kr)에도 할 수 있어요.`],
       ['12. 변경 안내', `이 방침이 바뀌면 앱 안에서 먼저 알려드려요.\n시행일: ${PRIVACY_EFFECTIVE}`],
     ],
   },
@@ -91,7 +93,7 @@ const DOCS: Record<Doc, { title: string; body: [string, string][] }> = {
     body: [
       ['제1조 (목적)', '이 약관은 모모팡(이하 “서비스”)가 제공하는 2인 실시간 미니게임 이용 조건과 절차를 정해요.'],
       ['제2조 (서비스 내용)', '서비스는 방 코드나 초대 링크로 연결된 두 사람이 함께 미니게임을 할 수 있게 해요. 음성·영상 통화 기능은 제공하지 않아요.'],
-      ['제3조 (이용 방법)', '게스트(가입 없음) 또는 카카오 계정으로 이용해요. 한 방에는 최대 2명이 들어갈 수 있고, 친구 초대·랜덤 매칭·봇 연습으로 게임을 할 수 있어요. 만 14세 이상만 이용할 수 있어요.'],
+      ['제3조 (이용 방법)', '게스트(가입 없음) 또는 카카오 계정으로 이용해요. 한 방에는 최대 2명이 들어갈 수 있고, 친구 초대·랜덤 매칭·봇 연습으로 게임을 할 수 있어요. 만 14세 미만은 어린이 모드로 이용할 수 있어요.'],
       ['제4조 (이용자의 의무)', '다른 사람을 불쾌하게 하는 닉네임 사용, 서비스 부정 이용(조작, 비정상 접속 등), 서비스 운영 방해를 하면 안 돼요.'],
       ['제5조 (서비스 변경·중단)', '점검, 장애, 운영상 필요에 따라 서비스 일부 또는 전부를 바꾸거나 멈출 수 있어요. 가능한 한 미리 알려드려요.'],
       ['제6조 (책임의 한계)', '이용자 기기·네트워크 상태로 생긴 연결 끊김이나 게임 결과에 대해서는 책임지지 않아요. 무료 서비스 특성상 게임 기록의 영구 보관을 보장하지 않아요.'],
@@ -138,11 +140,14 @@ export function Settings() {
               <Row label="로그아웃" onClick={async () => { await signOut(); setLoginType('guest'); setLoginTypeState('guest'); useStore.getState().showToast('로그아웃했어요 · 게스트로 계속 이용해요') }} />
               <Row label="회원 탈퇴" onClick={() => setSheet('withdraw')} right={<span className="text-[13px] text-[#C9433A] font-semibold">탈퇴</span>} />
             </>
-          ) : (
+          ) : st.kid ? null : (
             <Row label="카카오로 기록 저장하기" onClick={async () => {
               if (!kakaoAvailable) { useStore.getState().showToast('카카오 로그인은 정식 버전에서 열려요'); return }
               try { await signInWithKakao() } catch (e) { useStore.getState().showToast((e as Error).message) }
             }} />
+          )}
+          {loginType !== 'kakao' && (
+            <Row label="어린이 모드 (만 14세 미만)" right={<Toggle label="어린이 모드" on={st.kid === true} onChange={(v) => { set({ kid: v }); useStore.getState().showToast(v ? '어린이 모드를 켰어요 · 카카오 로그인·랜덤 매칭·이용 통계가 꺼져요' : '어린이 모드를 껐어요') }} />} />
           )}
         </Group>
 
@@ -157,7 +162,9 @@ export function Settings() {
           </div>
           <Row icon={ICONS.vibe} label="진동 설정" right={<Toggle label="진동" on={st.vibe} onChange={(v) => set({ vibe: v })} />} />
           <Row icon={ICONS.bell} label="알림 설정" onClick={() => setSheet('notify')} />
-          <Row icon={ICONS.chart} label="사용 통계 보내기" right={<Toggle label="사용 통계" on={st.analytics !== 'denied'} onChange={(v) => set({ analytics: v ? 'granted' : 'denied' })} />} />
+          {st.kid
+            ? <Row icon={ICONS.chart} label="사용 통계 보내기" right={<span className="text-[13px] text-ink-mute">어린이 모드라 꺼져 있어요</span>} />
+            : <Row icon={ICONS.chart} label="사용 통계 보내기" right={<Toggle label="사용 통계" on={st.analytics !== 'denied'} onChange={(v) => set({ analytics: v ? 'granted' : 'denied' })} />} />}
           <Row icon={ICONS.lang} label="언어 설정" onClick={() => setSheet('lang')} right={<span className="flex items-center gap-1 text-[14px] text-ink-mute">한국어<IcNext className="w-5 h-5" /></span>} />
         </Group>
 

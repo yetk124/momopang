@@ -43,7 +43,7 @@ export function cleanNickname(s: unknown): string | null {
 export function cleanPlayer(p: unknown): PlayerInfo | null {
   if (!isObj(p) || !isStr(p.id, 64) || !/^[\w-]{1,64}$/.test(p.id) || !isStr(p.nickname, 40)) return null
   const nickname = cleanNickname(p.nickname) ?? '친구'
-  return { id: p.id, nickname, avatar: toAvatarId(String(p.avatar ?? '')), bot: p.bot === true }
+  return { id: p.id, nickname, avatar: toAvatarId(String(p.avatar ?? '')), bot: p.bot === true, kid: p.kid === true }
 }
 
 const ACTIONS: Record<GameId, (a: Record<string, unknown>) => boolean> = {

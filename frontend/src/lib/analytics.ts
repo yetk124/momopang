@@ -32,7 +32,7 @@ function load() {
   document.head.appendChild(s)
 }
 
-const enabled = () => !!GA_ID && settings().analytics !== 'denied'
+const enabled = () => !!GA_ID && settings().analytics !== 'denied' && settings().kid !== true
 
 export function track(event: string, params: Record<string, string | number | boolean | undefined> = {}) {
   if (!enabled()) return

@@ -1,4 +1,5 @@
 import { ENGINES } from '../games/registry'
+import { setBalanceKidSafe } from '../games/balance/engine'
 import { clone } from '../games/types'
 import { uid } from '../lib/rng'
 import { saveHostState } from '../lib/storage'
@@ -181,6 +182,7 @@ export class HostController {
       const st = w()
       const seed = Math.floor(Math.random() * 2 ** 31)
       const ids = st.players.map((p) => p.id)
+      setBalanceKidSafe(st.players.some((p) => p.kid)) // 어린이가 있으면 연애 질문 빼기
       st.session = { id: uid(), game: st.game!, seed, clock: { startAt: now, pausedTotal: 0, pausedAt: null }, state: ENGINES[st.game!].init(seed, ids), ack: {} }
       st.phase = 'playing'; st.countdownEnd = null; st.result = null
     } else if (cur.phase === 'playing' && cur.session) {

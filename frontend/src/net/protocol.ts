@@ -1,7 +1,7 @@
 import type { AvatarId } from '../components/Avatar'
 import type { GameId } from '../games/types'
 
-export interface PlayerInfo { id: string; nickname: string; avatar: AvatarId; bot?: boolean }
+export interface PlayerInfo { id: string; nickname: string; avatar: AvatarId; bot?: boolean; /** 어린이 모드 사용자 (밸런스 게임 연애 질문 제외용) */ kid?: boolean }
 export interface PlayerSlot extends PlayerInfo { ready: boolean; connected: boolean }
 
 export interface Clock { startAt: number; pausedTotal: number; pausedAt: number | null }
