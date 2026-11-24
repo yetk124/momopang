@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AVATARS, Avatar, LIMITED_AVATARS, toAvatarId, type AvatarId } from '../components/Avatar'
+import { UNLOCKS, loadProgress } from '../lib/unlocks'
 import { Button, TopBar } from '../components/ui'
 import { useStore } from '../store'
 import { currentKakao, kakaoAvailable, signInWithKakao, signOut, type KakaoProfile } from '../lib/auth'
@@ -16,6 +17,9 @@ export function ProfileForm({ submitLabel, onDone, initialName }: { submitLabel:
   const showToast = useStore((s) => s.showToast)
   const [name, setName] = useState(profile?.nickname ?? filterNickInput(initialName ?? ''))
   const [avatar, setAvatar] = useState<AvatarId>(profile?.avatar ?? 'rabbit')
+  // 해금 진행도 (계정 동기화로 바뀔 수 있어 열 때마다 읽음)
+  const [progress, setProgress] = useState(loadProgress)
+  useEffect(() => { const id = setInterval(() => setProgress(loadProgress()), 1500); return () => clearInterval(id) }, [])
   const trimmed = name.trim()
   const bad = hasBadWord(trimmed)
   const valid = trimmed.length >= 1 && !bad
@@ -48,19 +52,36 @@ export function ProfileForm({ submitLabel, onDone, initialName }: { submitLabel:
           <span className="text-[11px] font-extrabold bg-butter-300 rounded-full px-2 py-0.5">LIMITED</span>
         </div>
         <div className="grid grid-cols-6 gap-2 mt-2">
-          {LIMITED_AVATARS.map((a) => (
-            <button type="button" key={a.id} data-track={`limited_${a.id}`} aria-label={`${a.name} (잠김)`}
-              onClick={() => showToast(`${a.name}는 한정판이에요 · 얻는 방법은 곧 공개돼요!`)}
-              className="relative aspect-square rounded-2xl grid place-items-center bg-white/60">
-              <img src={a.img} alt="" className="w-[46px] h-[46px] rounded-full grayscale-[.25] opacity-90" />
-              <span>
-                <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-ink/80 grid place-items-center shadow ring-2 ring-white">
-                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 018 0v3" /></svg>
-                </span>
-              </span>
-            </button>
-          ))}
+          {LIMITED_AVATARS.map((a) => {
+            const u = UNLOCKS.find((x) => x.id === a.id)!
+            const open = progress.unlocked.includes(a.id)
+            const [cur, need] = u.step(progress)
+            return (
+              <button type="button" key={a.id} data-track={`limited_${a.id}`} aria-label={open ? a.name : `${a.name} (잠김, ${u.how})`} aria-pressed={avatar === a.id}
+                onClick={() => (open ? setAvatar(a.id) : showToast(`${a.name}: ${u.how}하면 열려요 (지금 ${cur}/${need})`))}
+                className={`relative aspect-square rounded-2xl grid place-items-center transition ${avatar === a.id ? 'bg-white ring-[3px] ring-lav-400 scale-105' : 'bg-white/60 hover:bg-white'}`}>
+                <img src={a.img} alt="" className={`w-[46px] h-[46px] rounded-full ${open ? '' : 'grayscale opacity-60'}`} />
+                {!open && (
+                  <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-ink/80 grid place-items-center shadow ring-2 ring-white">
+                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 018 0v3" /></svg>
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </div>
+        <ul className="mt-2.5 flex flex-col gap-1.5">
+          {UNLOCKS.map((u) => {
+            const [cur, need] = u.step(progress); const open = progress.unlocked.includes(u.id)
+            return (
+              <li key={u.id} className="flex items-center gap-2 text-[12.5px]">
+                <span className="w-[68px] shrink-0 font-bold text-ink">{u.name}</span>
+                <span className="flex-1 h-2 rounded-full bg-lav-100 overflow-hidden"><span className={`block h-full rounded-full ${open ? 'bg-[#40C057]' : 'bg-lav-400'}`} style={{ width: `${(cur / need) * 100}%` }} /></span>
+                <span className={`shrink-0 font-bold tabular-nums ${open ? 'text-[#2F9E44]' : 'text-ink-mute'}`}>{open ? '해금 완료' : `${u.how} ${cur}/${need}`}</span>
+              </li>
+            )
+          })}
+        </ul>
       </div>
       <Button type="submit" disabled={!valid} className="w-full mt-2">{submitLabel}</Button>
     </form>

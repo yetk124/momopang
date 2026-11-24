@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { recordGame as recordProgress, unlockName, type LimitedId } from './lib/unlocks'
 import { toAvatarId, type AvatarId } from './components/Avatar'
 import { ENGINES, META } from './games/registry'
 import type { GameId } from './games/types'
@@ -6,7 +7,7 @@ import { makeRoomCode } from './lib/rng'
 import { sfx } from './lib/sfx'
 import { settings } from './lib/settings'
 import { track } from './lib/analytics'
-import { isKakao, saveHistory, saveMyProfile } from './lib/account'
+import { isKakao, saveHistory, saveMyProfile, saveUnlocks } from './lib/account'
 import { duckMusic } from './lib/bgm'
 import {
   clearHostState, getDeviceId, getPlayerId, loadActive, loadHostState, loadProfile, pushHistory, saveActive, saveProfile, type Profile,
@@ -35,6 +36,8 @@ interface State {
   pending: Pending[]
   presentIds: string[]
   toast: { id: number; text: string } | null
+  /** 방금 끝난 판에서 새로 해금된 한정판 아바타 (결과 화면 표시용) */
+  unlockedNow: LimitedId[]
   joinPrefill: string | null
   hostAwaySince: number | null
 
@@ -115,6 +118,7 @@ export const useStore = create<State>((set, get) => ({
   pending: [],
   presentIds: [],
   toast: null,
+  unlockedNow: [],
   joinPrefill: parseInvite(),
   hostAwaySince: null,
 
@@ -314,7 +318,15 @@ function onRoom(s: RoomState) {
     duckMusic(2600)
     if (r.winnerId === me) sfx.win(); else if (r.winnerId) sfx.lose(); else sfx.draw()
     if (st.mode === 'supabase') void recordGame(getDeviceId(), st.me.nickname, st.me.avatar, r.winnerId === me)
+    // 한정판 아바타 해금 체크
+    const fresh = recordProgress(r.game, item.outcome)
+    useStore.setState({ unlockedNow: fresh })
+    if (fresh.length) {
+      setTimeout(() => useStore.getState().showToast(`🎉 ${fresh.map(unlockName).join(', ')} 해금! 프로필에서 바꿀 수 있어요`), 1200)
+      void saveUnlocks()
+    }
   }
+  if (s.phase === 'playing' && prev?.phase !== 'playing' && st.unlockedNow.length) useStore.setState({ unlockedNow: [] })
 }
 
 /** 화면용 게임 상태: 호스트 상태 + 아직 확인 안 된 내 입력(낙관적 적용) */

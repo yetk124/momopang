@@ -62,19 +62,28 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
+// ⚠️ 출시 전에 실제 정보로 바꿔주세요 (개인정보 보호법상 필수 항목)
+const PRIVACY_OWNER = '모모팡 운영자'
+const PRIVACY_EMAIL = '(문의 이메일을 입력해 주세요)'
+const PRIVACY_EFFECTIVE = '2026년 11월 24일'
+
 type Doc = 'privacy' | 'terms' | 'refund'
 const DOCS: Record<Doc, { title: string; body: [string, string][] }> = {
   privacy: {
     title: '개인정보 처리 방침',
     body: [
-      ['1. 수집하는 정보', '모모팡은 게스트로 바로 쓰거나 카카오 계정으로 로그인해 쓸 수 있어요. 게스트는 닉네임·아바타·기기에서 만든 임시 ID만 사용해요. 카카오 로그인 시에는 카카오가 제공하는 닉네임·프로필 사진·카카오 회원번호(식별자)와, 동의한 경우 카카오계정 이메일을 받아요. 이메일은 계정 식별에만 쓰고 앱 화면이나 연락 목적으로 쓰지 않아요. 전화번호, 위치 정보는 수집하지 않아요.'],
-      ['2. 이용 목적', '방 만들기와 입장, 상대방에게 닉네임·아바타 표시, 게임 진행 상태 동기화, 게임 결과 표시에만 사용해요.'],
-      ['3. 보관 위치와 기간', '프로필, 설정, 최근 기록은 이용자의 기기(브라우저 저장소)에 저장돼요. 온라인 모드에서는 방 코드, 닉네임, 게임 결과가 서버(Supabase)에 기록되며 방 만료 후 30일 이내 삭제를 원칙으로 해요. 카카오 계정으로 이용하면 프로필과 최근 게임 기록이 계정에 저장되어 다른 기기에서도 이어서 볼 수 있어요. 명예의 전당(랭킹)을 위해 닉네임·아바타·누적 승수가 기기 단위 무작위 ID와 함께 저장되고, 다른 이용자에게 닉네임과 승수가 공개돼요.'],
-      ['4. 제3자 제공·처리 위탁', '법령에 따른 경우를 제외하고 개인정보를 외부에 제공하지 않아요. 실시간 연결을 위해 Supabase를, 이용 통계 분석을 위해 Google Analytics를 이용해요.'],
-      ['5. 이용 통계(Google Analytics) · 자동 수집 장치', '서비스 개선을 위해 화면 이동, 화면별 머문 시간, 누른 버튼, 게임 시작·종료 같은 익명 이용 기록과 기기·브라우저 정보를 수집해요. 닉네임, 플레이어 ID는 보내지 않고 광고 목적으로 쓰지 않아요. 이를 위해 브라우저 저장소·쿠키 같은 자동 수집 장치를 사용해요. 원하지 않으면 첫 안내창의 \'보내지 않기\' 또는 설정 > 사용 통계 보내기에서 언제든 거부할 수 있고, 거부해도 앱 이용에는 제한이 없어요.'],
-      ['6. 이용자의 권리', '설정에서 프로필을 언제든 바꿀 수 있고, 브라우저 데이터를 지우면 기기에 저장된 정보가 모두 삭제돼요. 서버 기록 삭제는 고객 문의로 요청할 수 있어요.'],
-      ['7. 회원 탈퇴', '카카오 계정으로 이용하면 설정 > 계정 > 회원 탈퇴에서 언제든 탈퇴할 수 있어요. 탈퇴하면 프로필, 게임 기록, 랭킹 정보가 즉시 삭제돼요. 카카오 쪽 연결 해제는 카카오 계정 설정에서도 할 수 있어요.'],
-      ['8. 문의', '개인정보 관련 문의는 앱 내 고객 지원 채널로 보내주세요.'],
+      ['1. 처리 목적', '방 만들기·입장, 상대방에게 닉네임과 아바타 보여주기, 게임 진행 상태 동기화, 랜덤 매칭, 게임 결과·랭킹 표시, 카카오 계정 로그인과 기록 보관, 서비스 개선을 위한 이용 통계에만 사용해요.'],
+      ['2. 처리하는 개인정보 항목', '• 게스트: 닉네임, 아바타, 기기에서 만든 무작위 ID\n• 카카오 로그인: 카카오가 제공하는 닉네임, 프로필 사진, 카카오 회원번호(식별자)\n• 게임 이용: 방 코드, 게임 결과(점수·승패), 누적 승수, 해금한 아바타\n• 자동 수집: 접속 기록(IP 주소, 접속 시각), 기기·브라우저 정보, 화면 이동·버튼 누름 같은 익명 이용 기록\n전화번호, 이메일, 위치 정보는 받지 않아요.'],
+      ['3. 보유 기간과 파기', '• 방·게임 진행 기록: 만든 날부터 30일 뒤 자동 삭제\n• 게스트 랭킹 기록(닉네임·아바타·승수): 마지막 게임 후 1년 동안 이용이 없으면 자동 삭제\n• 카카오 계정 프로필·게임 기록: 회원 탈퇴 시 즉시 삭제\n• 기기에 저장된 프로필·설정·최근 기록: 브라우저 데이터를 지우면 삭제\n삭제는 매일 정해진 시간에 서버에서 자동으로 실행되고, 복구할 수 없는 방법으로 지워요.'],
+      ['4. 제3자 제공', '법령에 따라 요구되는 경우를 제외하고 개인정보를 다른 곳에 제공하지 않아요. 랭킹(명예의 전당)에서는 다른 이용자에게 닉네임, 아바타, 승수가 보여요.'],
+      ['5. 처리 위탁', '서비스 운영을 위해 아래 업체에 처리를 맡기고 있어요.\n• Supabase Inc.: 데이터베이스, 로그인 처리, 실시간 연결\n• Vercel Inc.: 웹사이트 호스팅(접속 기록 처리)\n• Google LLC: 이용 통계(Google Analytics)\n• (주)카카오: 카카오 로그인 인증'],
+      ['6. 국외 이전', '위탁 업체의 서버가 해외에 있어 아래와 같이 개인정보가 국외로 전송돼요.\n• Supabase Inc.(미국) · 프로필·게임 기록·접속 정보 · 서비스 이용 시 네트워크로 전송 · 위 3번 보유 기간까지\n• Vercel Inc.(미국) · 접속 기록(IP 주소, 브라우저 정보) · 접속 시 전송 · 업체 정책에 따른 기간\n• Google LLC(미국) · 익명 이용 기록, 기기·브라우저 정보 · 이용 중 전송 · 최대 14개월\n국외 이전을 원하지 않으면 이용을 멈추거나 회원 탈퇴할 수 있어요. 이용 통계는 설정에서 따로 끌 수 있어요.'],
+      ['7. 이용 통계 · 자동 수집 장치', '서비스 개선을 위해 Google Analytics로 화면 이동, 머문 시간, 누른 버튼, 게임 시작·종료 같은 익명 이용 기록을 모아요. 닉네임과 플레이어 ID는 보내지 않고 광고에 쓰지 않아요. 이를 위해 브라우저 저장소와 쿠키를 써요. 첫 안내창의 \'보내지 않기\' 또는 설정 > 사용 통계 보내기에서 언제든 거부할 수 있고, 거부해도 이용에 제한이 없어요.'],
+      ['8. 이용자의 권리', '언제든 자신의 개인정보를 확인·수정·삭제하거나 처리 정지를 요청할 수 있어요. 프로필은 설정에서 바로 바꿀 수 있고, 카카오 계정은 설정 > 내 계정 > 회원 탈퇴로 즉시 삭제돼요. 그 밖의 요청은 아래 연락처로 보내주시면 지체 없이 처리할게요.'],
+      ['9. 만 14세 미만', '모모팡은 만 14세 이상만 이용할 수 있어요. 만 14세 미만 아동의 개인정보는 알면서 수집하지 않으며, 확인되면 바로 삭제해요.'],
+      ['10. 안전성 확보 조치', '모든 데이터는 암호화된 연결(HTTPS)로 주고받고, 데이터베이스는 본인 데이터만 볼 수 있게 접근을 제한해요. 관리용 비밀 키는 앱에 넣지 않고 서버에만 보관해요.'],
+      ['11. 개인정보 보호책임자', `개인정보와 관련한 문의, 불만, 피해 구제는 아래로 연락해 주세요.\n• 책임자: ${PRIVACY_OWNER}\n• 연락처: ${PRIVACY_EMAIL}\n개인정보 침해 신고·상담은 개인정보침해신고센터(국번 없이 118, privacy.kisa.or.kr)에도 할 수 있어요.`],
+      ['12. 변경 안내', `이 방침이 바뀌면 앱 안에서 먼저 알려드려요.\n시행일: ${PRIVACY_EFFECTIVE}`],
     ],
   },
   terms: {
@@ -82,7 +91,7 @@ const DOCS: Record<Doc, { title: string; body: [string, string][] }> = {
     body: [
       ['제1조 (목적)', '이 약관은 모모팡(이하 “서비스”)가 제공하는 2인 실시간 미니게임 이용 조건과 절차를 정해요.'],
       ['제2조 (서비스 내용)', '서비스는 방 코드나 초대 링크로 연결된 두 사람이 함께 미니게임을 할 수 있게 해요. 음성·영상 통화 기능은 제공하지 않아요.'],
-      ['제3조 (이용 방법)', '회원가입 없이 닉네임과 아바타를 정해 게스트로 이용해요. 한 방에는 최대 2명이 들어갈 수 있어요.'],
+      ['제3조 (이용 방법)', '게스트(가입 없음) 또는 카카오 계정으로 이용해요. 한 방에는 최대 2명이 들어갈 수 있고, 친구 초대·랜덤 매칭·봇 연습으로 게임을 할 수 있어요. 만 14세 이상만 이용할 수 있어요.'],
       ['제4조 (이용자의 의무)', '다른 사람을 불쾌하게 하는 닉네임 사용, 서비스 부정 이용(조작, 비정상 접속 등), 서비스 운영 방해를 하면 안 돼요.'],
       ['제5조 (서비스 변경·중단)', '점검, 장애, 운영상 필요에 따라 서비스 일부 또는 전부를 바꾸거나 멈출 수 있어요. 가능한 한 미리 알려드려요.'],
       ['제6조 (책임의 한계)', '이용자 기기·네트워크 상태로 생긴 연결 끊김이나 게임 결과에 대해서는 책임지지 않아요. 무료 서비스 특성상 게임 기록의 영구 보관을 보장하지 않아요.'],
@@ -93,7 +102,7 @@ const DOCS: Record<Doc, { title: string; body: [string, string][] }> = {
     body: [
       ['현재 유료 상품 없음', '모모팡은 현재 모든 기능을 무료로 제공하고 있어 결제나 환불 대상이 되는 상품이 없어요.'],
       ['향후 유료 상품 도입 시', '유료 아이템이나 구독이 생기면 관련 법령(전자상거래법 등)에 따라 청약철회·환불 기준을 이 페이지에 먼저 안내할게요.'],
-      ['문의', '결제 관련 문의가 생기면 앱 내 고객 지원 채널로 보내주세요.'],
+      ['문의', `결제 관련 문의는 ${PRIVACY_EMAIL} 로 보내주세요.`],
     ],
   },
 }
@@ -110,24 +119,30 @@ export function Settings() {
     <div className="flex-1 flex flex-col">
       <TopBar title="설정" />
       <div className="px-5 pb-8 flex flex-col gap-5">
-        <button onClick={() => setSheet('profile')} className="rounded-3xl bg-white/85 shadow-soft p-4 flex items-center gap-3 text-left active:bg-lav-50">
-          {profile && <Avatar id={profile.avatar} size={52} />}
-          <div className="flex-1"><p className="font-extrabold text-[17px]">{profile?.nickname}</p><p className="text-[13px] text-ink-mute">닉네임 · 아바타 바꾸기</p></div>
-          <IcNext className="w-5 h-5 text-ink-mute" />
-        </button>
-
-        <Group title="계정">
+        <Group title="내 계정">
+          <button onClick={() => setSheet('profile')} className="w-full p-4 flex items-center gap-3 text-left active:bg-lav-50">
+            {profile && <Avatar id={profile.avatar} size={52} />}
+            <div className="flex-1 min-w-0">
+              <p className="flex items-center gap-1.5 font-extrabold text-[17px]">
+                <span className="truncate">{profile?.nickname}</span>
+                {loginType === 'kakao'
+                  ? <span className="shrink-0 text-[11px] font-bold rounded-full px-2 py-0.5" style={{ background: '#FEE500' }}>kakao</span>
+                  : <span className="shrink-0 text-[11px] font-bold rounded-full px-2 py-0.5 bg-lav-50 text-ink-soft">게스트</span>}
+              </p>
+              <p className="text-[13px] text-ink-mute">닉네임 · 아바타 바꾸기</p>
+            </div>
+            <IcNext className="w-5 h-5 text-ink-mute" />
+          </button>
           {loginType === 'kakao' ? (
             <>
-              <Row label="카카오 계정 연결됨" right={<span className="text-[12px] font-bold rounded-full px-2 py-0.5" style={{ background: '#FEE500' }}>kakao</span>} />
-              <Row label="회원 탈퇴" onClick={() => setSheet('withdraw')} right={<span className="text-[13px] text-[#C9433A] font-semibold">탈퇴</span>} />
               <Row label="로그아웃" onClick={async () => { await signOut(); setLoginType('guest'); setLoginTypeState('guest'); useStore.getState().showToast('로그아웃했어요 · 게스트로 계속 이용해요') }} />
+              <Row label="회원 탈퇴" onClick={() => setSheet('withdraw')} right={<span className="text-[13px] text-[#C9433A] font-semibold">탈퇴</span>} />
             </>
           ) : (
             <Row label="카카오로 기록 저장하기" onClick={async () => {
               if (!kakaoAvailable) { useStore.getState().showToast('카카오 로그인은 정식 버전에서 열려요'); return }
               try { await signInWithKakao() } catch (e) { useStore.getState().showToast((e as Error).message) }
-            }} right={<span className="flex items-center gap-1 text-[13px] text-ink-mute">게스트<IcNext className="w-5 h-5" /></span>} />
+            }} />
           )}
         </Group>
 
@@ -192,7 +207,7 @@ export function Settings() {
       </Sheet>
       <Sheet open={!!doc} onClose={() => setSheet(null)} title={doc?.title}>
         <div className="max-h-[62vh] overflow-y-auto -mx-1 px-1 space-y-4 text-[14px] leading-relaxed">
-          {doc?.body.map(([h, p]) => <div key={h}><h3 className="font-extrabold mb-1">{h}</h3><p className="text-ink-soft">{p}</p></div>)}
+          {doc?.body.map(([h, p]) => <div key={h}><h3 className="font-extrabold mb-1">{h}</h3><p className="text-ink-soft whitespace-pre-line">{p}</p></div>)}
           <p className="text-[12px] text-ink-mute pt-2 border-t border-lav-50">시행일: 2026년 12월 1일 (초안 · 정식 출시 전 법률 검토가 필요해요)</p>
         </div>
       </Sheet>

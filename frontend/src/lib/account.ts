@@ -6,6 +6,7 @@ import { cleanNickname } from '../net/validate'
 import { getSupabase } from '../net/transports'
 import { currentKakao, signOut } from './auth'
 import { getDeviceId, getLoginType, loadHistory, setLoginType, type HistoryItem } from './storage'
+import { loadProgress, mergeProgress, type LimitedId } from './unlocks'
 
 const uidOf = async () => (await getSupabase()?.auth.getSession())?.data.session?.user.id ?? null
 export const isKakao = () => getLoginType() === 'kakao'
@@ -55,15 +56,41 @@ export async function onKakaoLogin(localProfile: { nickname: string; avatar: str
   const local = loadHistory()
   if (local.length) { try { await sb.from('game_history').upsert(local.map((h) => toRow(uid, h)), { onConflict: 'user_id,session_id', ignoreDuplicates: true }) } catch { /* noop */ } }
   const server = await fetchMyProfile()
-  if (!server && localProfile) { await saveMyProfile(localProfile.nickname, localProfile.avatar); return localProfile }
-  return server
+  if (!server && localProfile) await saveMyProfile(localProfile.nickname, localProfile.avatar)
+  void syncUnlocks()
+  return server ?? localProfile
+}
+
+/** 해금 진행도를 서버 기록과 합치고, 해금 목록을 계정에 저장 → 새로 열린 아바타 */
+export async function syncUnlocks(): Promise<LimitedId[]> {
+  if (!isKakao()) return []
+  const sb = getSupabase(); const uid = await uidOf(); if (!sb || !uid) return []
+  try {
+    const [{ count: wins }, { data: games }, { data: prof }] = await Promise.all([
+      sb.from('game_history').select('session_id', { count: 'exact', head: true }).eq('user_id', uid).eq('outcome', 'win'),
+      sb.from('game_history').select('game').eq('user_id', uid).limit(2000),
+      sb.from('profiles').select('unlocked').eq('id', uid).maybeSingle(),
+    ])
+    const played = [...new Set((games ?? []).map((r) => String(r.game)))] as GameId[]
+    const before = (prof?.unlocked as string[] | undefined) ?? []
+    const { progress, fresh } = mergeProgress({ wins: wins ?? 0, played, unlocked: before as LimitedId[] })
+    if (progress.unlocked.length !== before.length) await sb.from('profiles').update({ unlocked: progress.unlocked }).eq('id', uid)
+    return fresh
+  } catch { return [] }
+}
+
+/** 해금 목록만 계정에 저장 (게임 끝나고 새로 열렸을 때) */
+export async function saveUnlocks() {
+  if (!isKakao()) return
+  const sb = getSupabase(); const uid = await uidOf(); if (!sb || !uid) return
+  try { await sb.from('profiles').update({ unlocked: loadProgress().unlocked }).eq('id', uid) } catch { /* 다음에 다시 */ }
 }
 
 /** 앱 시작 시: 카카오 세션이 있는데 아직 합치기 전이면 처리 */
 export async function checkLoginOnBoot(localProfile: { nickname: string; avatar: string } | null) {
   const k = await currentKakao()
   if (!k) { if (isKakao()) setLoginType('guest'); return null } // 세션 만료 → 게스트로
-  if (isKakao()) return null
+  if (isKakao()) { void syncUnlocks(); return null }
   return onKakaoLogin(localProfile)
 }
 

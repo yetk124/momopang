@@ -20,6 +20,7 @@ import { MemoryGame } from '../games/memory/MemoryGame'
 import { PairsGame } from '../games/pairs/PairsGame'
 import { MergeGame } from '../games/merge/MergeGame'
 import { balanceMatch } from '../games/balance/engine'
+import { unlockName } from '../lib/unlocks'
 import { SuikaGame } from '../games/suika/SuikaGame'
 import { OmokGame } from '../games/omok/OmokGame'
 import { BalanceGame } from '../games/balance/BalanceGame'
@@ -283,6 +284,7 @@ function Result({ room }: { room: RoomState }) {
   const oppId = opp?.id ?? Object.keys(r.scores).find((k) => k !== meId) ?? ''
   const oppSlot = opp ?? null
   const win = r.winnerId === meId, draw = r.winnerId === null
+  const unlockedNow = useStore((st) => st.unlockedNow)
   const isBalance = r.game === 'balance'
   const bSame = r.stats[meId]?.same ?? 0, bTotal = bSame + (r.stats[meId]?.diff ?? 0)
   const pct = balanceMatch(bSame, bTotal)
@@ -302,6 +304,15 @@ function Result({ room }: { room: RoomState }) {
         <h1 className="font-round text-[30px] leading-tight">{title}{win && ' 🎉'}</h1>
         {isBalance && !reasonNote && <p className="text-[14px] font-bold text-ink-soft mt-1">{balanceNote}</p>}
         {reasonNote && <p className="text-[13px] text-ink-mute mt-1">{reasonNote}</p>}
+        {unlockedNow.length > 0 && (
+          <div className="mt-3 mx-auto flex items-center gap-2.5 rounded-2xl bg-butter-100 px-3.5 py-2 animate-pop" role="status">
+            {unlockedNow.map((id) => <Avatar key={id} id={id} size={40} />)}
+            <div className="text-left">
+              <p className="font-round text-[17px] leading-tight text-ink">{unlockedNow.map(unlockName).join(', ')} 해금! 🎉</p>
+              <p className="text-[12px] font-bold text-ink-soft">설정 &gt; 프로필에서 바꿀 수 있어요</p>
+            </div>
+          </div>
+        )}
       </div>
       {!isBalance && <div className="grid grid-cols-2 gap-3 mt-3">
         <ScoreCard name={me.nickname} avatar={me.avatar} score={r.scores[meId] ?? 0} best={r.winnerId === meId} />
