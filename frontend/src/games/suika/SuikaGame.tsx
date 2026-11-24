@@ -46,8 +46,6 @@ export function SuikaGame({ state, t, meId, oppId }: GameProps<SuikaState>) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const oppCanvas = useRef<HTMLCanvasElement>(null)
   const aim = useRef(BOX_W / 2)
-  /** 화면에 보이는 조준 위치 (aim을 부드럽게 따라감) */
-  const shown = useRef(BOX_W / 2)
   const lastDrop = useRef(0)
   const [hud, setHud] = useState({ score: 0, drops: 0, over: false })
   const timeUp = t >= SUIKA_TIME
@@ -72,8 +70,7 @@ export function SuikaGame({ state, t, meId, oppId }: GameProps<SuikaState>) {
           draw(ctx, w, sc, w.dangerSince !== null)
           if (!w.over && !timeUpRef.current) {
             // 조준선 + 떨어뜨릴 과일
-            shown.current += (aim.current - shown.current) * 0.3 // 부드럽게 따라가기
-            const k = nextKind(state.seed, w.drops), r = RADIUS[k], x = Math.max(r, Math.min(BOX_W - r, shown.current))
+            const k = nextKind(state.seed, w.drops), r = RADIUS[k], x = Math.max(r, Math.min(BOX_W - r, aim.current))
             ctx.strokeStyle = 'rgba(143,123,234,.35)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, DROP_Y + r); ctx.lineTo(x, BOX_H); ctx.stroke()
             const im = img(k); if (im?.complete) { ctx.globalAlpha = now - lastDrop.current < DROP_GAP_MS ? 0.35 : 1; ctx.drawImage(im, x - r * 1.08, DROP_Y - r * 1.08, r * 2.16, r * 2.16); ctx.globalAlpha = 1 }
           }
@@ -102,33 +99,15 @@ export function SuikaGame({ state, t, meId, oppId }: GameProps<SuikaState>) {
     draw(ctx, { fruits }, c.width / BOX_W, false)
   }), [oppId])
 
-  // PC: 마우스가 과일통 밖에 있어도 좌우를 따라오고, ← → 키로 움직이고 스페이스로 떨어뜨리기
-  useEffect(() => {
-    const move = (e: PointerEvent) => {
-      if (e.pointerType !== 'mouse' || !canvas.current) return
-      const r = canvas.current.getBoundingClientRect()
-      aim.current = Math.max(0, Math.min(BOX_W, ((e.clientX - r.left) / r.width) * BOX_W))
-    }
-    const key = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') { aim.current = Math.max(0, aim.current - 18); e.preventDefault() }
-      else if (e.key === 'ArrowRight') { aim.current = Math.min(BOX_W, aim.current + 18); e.preventDefault() }
-      else if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowDown') { e.preventDefault(); dropNow() }
-    }
-    addEventListener('pointermove', move); addEventListener('keydown', key)
-    return () => { removeEventListener('pointermove', move); removeEventListener('keydown', key) }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const dropNow = () => {
-    const w = world.current, now = performance.now()
-    if (w.over || timeUpRef.current || now - lastDrop.current < DROP_GAP_MS) return
-    lastDrop.current = now; shown.current = aim.current
-    drop(w, nextKind(state.seed, w.drops), aim.current); sfx.tap()
-  }
   const toX = (e: React.PointerEvent) => { const r = canvas.current!.getBoundingClientRect(); return ((e.clientX - r.left) / r.width) * BOX_W }
   const onDown = (e: React.PointerEvent) => { e.preventDefault(); (e.currentTarget as Element).setPointerCapture?.(e.pointerId); aim.current = toX(e) }
-  // 마우스는 누르지 않아도 따라오고, 터치는 끄는 동안 따라와요
-  const onMove = (e: React.PointerEvent) => { if (e.pointerType === 'mouse' || e.buttons || e.pointerType === 'touch') aim.current = toX(e) }
-  const onUp = (e: React.PointerEvent) => { aim.current = toX(e); dropNow() }
+  const onMove = (e: React.PointerEvent) => { if (e.buttons || e.pointerType === 'touch') aim.current = toX(e) }
+  const onUp = (e: React.PointerEvent) => {
+    const w = world.current, now = performance.now()
+    if (w.over || timeUpRef.current || now - lastDrop.current < DROP_GAP_MS) return
+    aim.current = toX(e); lastDrop.current = now
+    drop(w, nextKind(state.seed, w.drops), aim.current); sfx.tap()
+  }
 
   const w = world.current
   const upcoming = nextKind(state.seed, w.drops + 1)
@@ -159,6 +138,7 @@ export function SuikaGame({ state, t, meId, oppId }: GameProps<SuikaState>) {
           )}
         </div>
       </Fit>
+      <p className="text-center text-[13px] font-bold text-ink-soft">좌우로 움직여 놓고 손을 떼면 떨어져요 · 같은 과일끼리 닿으면 합쳐져요</p>
     </div>
   )
 }

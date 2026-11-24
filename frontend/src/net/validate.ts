@@ -59,6 +59,9 @@ const ACTIONS: Record<GameId, (a: Record<string, unknown>) => boolean> = {
   memory: (a) => isInt(a.c, 0, 3),
   pairs: (a) => isInt(a.cell, 0, 39),
   merge: (a) => a.dir === 'up' || a.dir === 'down' || a.dir === 'left' || a.dir === 'right',
+  suika: (a) => a.type === 'report' && isInt(a.score, 0, 100000) && isInt(a.best, 0, 10) && isInt(a.n, 0, 5000) && isInt(a.over, 0, 1),
+  omok: (a) => isInt(a.cell, 0, 224),
+  balance: (a) => isInt(a.choice, -1, 1),
 }
 const GAME_IDS = Object.keys(ACTIONS) as GameId[]
 
@@ -71,7 +74,7 @@ export function cleanIntent(i: unknown, game: GameId | undefined): Intent | null
     case 'act': {
       if (!game || !isObj(i.a) || !ACTIONS[game](i.a)) return null
       // 알려진 키만 골라 새 객체로 (예상 못 한 필드·__proto__ 등 차단)
-      const KEYS = ['type', 'cell', 'h', 'r', 'c', 'r1', 'c1', 'r2', 'c2', 'x', 'y', 'text', 'word', 'choice', 'dir']
+      const KEYS = ['type', 'cell', 'h', 'r', 'c', 'r1', 'c1', 'r2', 'c2', 'x', 'y', 'text', 'word', 'choice', 'dir', 'score', 'best', 'n', 'over']
       const a: Record<string, unknown> = Object.create(null)
       for (const k of KEYS) if (Object.prototype.hasOwnProperty.call(i.a, k)) a[k] = i.a[k]
       if (typeof a.text === 'string') a.text = filterGuessInput(a.text)

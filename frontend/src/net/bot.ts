@@ -12,6 +12,10 @@ import type { BombState } from '../games/bomb/engine'
 import type { MemState } from '../games/memory/engine'
 import type { PairsState } from '../games/pairs/engine'
 import { canMove, slide, type Dir, type MergeState } from '../games/merge/engine'
+import type { BalanceState } from '../games/balance/engine'
+import { omokBest, type OmokState } from '../games/omok/engine'
+import type { SuikaState } from '../games/suika/engine'
+import { BOX_W, RADIUS, drop as suikaDrop, newWorld, nextKind, snapshot as suikaSnap, step as suikaStep, type World } from '../games/suika/physics'
 import { gameMs, type Intent, type Msg, type PlayerInfo, type RoomState, type Transport } from './protocol'
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a)
@@ -188,6 +192,44 @@ export class Bot {
         }
         if (pick < 0) { const unseen = hidden.filter((i) => !seen.has(i)); const pool = unseen.length ? unseen : hidden; pick = pool[Math.floor(Math.random() * pool.length)] ?? -1 }
         if (pick >= 0) { seen.set(pick, ps.board[pick]); this.send({ type: 'act', a: { cell: pick } }) }
+        break
+      }
+      case 'balance': {
+        const b = st as BalanceState
+        if (b.phase === 'vote' && b.votes[me] === undefined) this.once(`bv-${b.idx}`, rand(1500, 4500), () => this.send({ type: 'act', a: { choice: Math.random() < 0.5 ? 0 : 1 } }))
+        break
+      }
+      case 'omok': {
+        const o = st as OmokState
+        if (o.winner || o.turn !== me || t < o.turnStart) return
+        this.once(`om-${o.moves}`, rand(900, 2200), () => {
+          const cur = this.room?.session?.state as OmokState | undefined
+          if (!cur || cur.turn !== me || cur.winner) return
+          const cell = omokBest(cur, me); if (cell >= 0) this.send({ type: 'act', a: { cell } })
+        })
+        break
+      }
+      case 'suika': {
+        // 봇도 자기 폰처럼 물리를 직접 돌려요
+        const ss = st as SuikaState; const p = ss.p[me]; if (!p) return
+        let w = this.memo.get('suika') as World | undefined
+        if (!w) { w = newWorld(); this.memo.set('suika', w); this.memo.set('suikaT', Date.now()) }
+        const nowMs = Date.now(), prevMs = this.memo.get('suikaT') as number
+        this.memo.set('suikaT', nowMs)
+        suikaStep(w, (nowMs - prevMs) / 1000); w.pops = []
+        if (!w.over && t >= this.nextAt && t < 120_000) {
+          this.nextAt = t + rand(1100, 1900)
+          const k = nextKind(ss.seed, w.drops)
+          // 같은 과일 위를 노리거나, 아니면 아무 데나
+          const same = w.fruits.filter((f) => f.k === k).sort((a, b) => a.y - b.y)[0]
+          const x = same && Math.random() < 0.7 ? same.x + rand(-6, 6) : rand(RADIUS[k], BOX_W - RADIUS[k])
+          suikaDrop(w, k, x)
+        }
+        const last = this.memo.get('suikaSent') as string | undefined
+        const cur = { score: w.score, best: w.best, n: w.drops, over: w.over ? 1 : 0 }
+        const key = JSON.stringify(cur)
+        if (key !== last && nowMs - ((this.memo.get('suikaRep') as number) ?? 0) > 300) { this.memo.set('suikaSent', key); this.memo.set('suikaRep', nowMs); this.send({ type: 'act', a: { type: 'report', ...cur } }) }
+        if (nowMs - ((this.memo.get('suikaSnap') as number) ?? 0) > 400) { this.memo.set('suikaSnap', nowMs); this.eph('suika', { f: suikaSnap(w), s: w.score }) }
         break
       }
       case 'merge': {

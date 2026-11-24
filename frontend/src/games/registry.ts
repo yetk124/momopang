@@ -11,8 +11,11 @@ import { bombEngine } from './bomb/engine'
 import { memoryEngine } from './memory/engine'
 import { pairsEngine } from './pairs/engine'
 import { mergeEngine } from './merge/engine'
+import { suikaEngine } from './suika/engine'
+import { omokEngine } from './omok/engine'
+import { balanceEngine } from './balance/engine'
 
-export const ENGINES: Record<GameId, Engine> = { apple: appleEngine, halli: halliEngine, draw: drawEngine, rush: rushEngine, block: blockEngine, spot: spotEngine, word: wordEngine, quiz: quizEngine, bomb: bombEngine, memory: memoryEngine, pairs: pairsEngine, merge: mergeEngine }
+export const ENGINES: Record<GameId, Engine> = { apple: appleEngine, halli: halliEngine, draw: drawEngine, rush: rushEngine, block: blockEngine, spot: spotEngine, word: wordEngine, quiz: quizEngine, bomb: bombEngine, memory: memoryEngine, pairs: pairsEngine, merge: mergeEngine, suika: suikaEngine, omok: omokEngine, balance: balanceEngine }
 
 export interface GameMeta {
   id: GameId
@@ -116,6 +119,27 @@ export const GAMES: GameMeta[] = [
     scoring: ['합쳐서 만든 숫자만큼 점수', '보드가 꽉 차면 끝', '최대 타일도 기록돼요'],
     desc: '타일을 밀어서 같은 숫자끼리 합쳐 더 큰 숫자를 만들어요. 둘 다 같은 순서로 타일이 나와요.',
     guide: [{ e: '👆↔️', t: '스와이프로 밀기', d: '위아래 좌우로 스와이프하면 모든 타일이 그쪽으로 쭉 밀려요.' }, { e: '2️⃣➕2️⃣', t: '같은 숫자 합치기', d: '2와 2가 부딪히면 4가 돼요. 만든 숫자만큼 점수! 판이 꽉 차면 끝나요.' }],
+  },
+  {
+    id: 'suika', name: '수박게임', en: 'Fruit Merge', tagline: '같은 과일 합쳐 수박까지!', kind: '퍼즐', time: '2분', durationMs: 120_000, tint: '#E6F6E1',
+    rules: ['각자 자기 과일통에 과일을 떨어뜨려요', '같은 과일끼리 닿으면 한 단계 큰 과일로', '둘 다 같은 순서로 과일이 나와요'],
+    scoring: ['큰 과일을 만들수록 점수가 커요', '수박끼리 합치면 +100', '빨간 선 위로 2초 넘게 쌓이면 끝'],
+    desc: '체리부터 수박까지! 같은 과일끼리 합쳐서 더 큰 과일을 만들어요. 과일통이 넘치지 않게 조심해요.',
+    guide: [{ e: '🍒➡️🍉', t: '떨어뜨려 합치기', d: '좌우로 위치를 정하고 손을 떼면 과일이 떨어져요. 같은 과일끼리 닿으면 합쳐져요.' }, { e: '⚠️📦', t: '넘치면 끝', d: '빨간 점선 위로 과일이 2초 넘게 쌓이면 끝나요. 오른쪽 위에서 상대 통도 볼 수 있어요.' }],
+  },
+  {
+    id: 'omok', name: '오목', en: 'Gomoku', tagline: '다섯 개를 먼저 이어요!', kind: '전략', time: '한 수 20초', durationMs: 0, tint: '#FCEBD2',
+    rules: ['흑부터 번갈아 돌을 둬요', '가로·세로·대각선 5개를 먼저 이으면 승리', '한 수 20초 · 시간 초과 3번이면 패배'],
+    scoring: ['오목 완성하면 승리', '한 번 누르면 미리보기, 한 번 더 누르면 착수', '판이 꽉 차면 무승부'],
+    desc: '번갈아 흑돌과 백돌을 두면서 가로·세로·대각선으로 5개를 먼저 잇는 사람이 이겨요.',
+    guide: [{ e: '⚫⚪', t: '번갈아 두기', d: '흑부터 시작해요. 자리를 한 번 누르면 미리보기, 같은 자리를 한 번 더 누르면 돌을 둬요.' }, { e: '⚫⚫⚫⚫⚫', t: '5개를 이으면 승리', d: '가로·세로·대각선 어느 쪽이든 5개를 먼저 이으면 이겨요. 상대 줄도 막아야 해요!' }],
+  },
+  {
+    id: 'balance', name: '밸런스 게임', en: 'This or That', tagline: '너라면 뭐 골라?', kind: '대화', time: '10문제', durationMs: 0, tint: '#F6ECFF',
+    rules: ['둘 중 하나를 골라요 · 시간 제한 없음', '둘 다 고르면 서로의 선택이 공개돼요', '얘기 나누고 다음 질문으로'],
+    scoring: ['승패 대신 우리 궁합 %', '같은 선택이 많을수록 궁합 UP', '연애·일상·음식·상상 질문'],
+    desc: '둘 중 하나를 고르면 서로의 선택이 공개돼요. "왜 그걸 골라?!" 하면서 통화로 수다 떨기 딱 좋아요.',
+    guide: [{ e: '🅰️🆚🅱️', t: '하나만 골라요', d: '시간 제한은 없어요. 둘 다 고를 때까지 상대 선택은 안 보여요.' }, { e: '💕🔥', t: '공개하고 수다', d: '같으면 하트, 다르면 불꽃! 왜 골랐는지 얘기하다가 누구든 다음 질문을 누르면 넘어가요.' }],
   },
 ]
 export const META = Object.fromEntries(GAMES.map((g) => [g.id, g])) as Record<GameId, GameMeta>

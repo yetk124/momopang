@@ -1,4 +1,4 @@
-export type GameId = 'apple' | 'halli' | 'draw' | 'rush' | 'block' | 'spot' | 'word' | 'quiz' | 'bomb' | 'memory' | 'pairs' | 'merge'
+export type GameId = 'apple' | 'halli' | 'draw' | 'rush' | 'block' | 'spot' | 'word' | 'quiz' | 'bomb' | 'memory' | 'pairs' | 'merge' | 'suika' | 'omok' | 'balance'
 
 export interface GameResultData {
   scores: Record<string, number>
