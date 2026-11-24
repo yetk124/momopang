@@ -9,8 +9,8 @@ import { getSupabase, supabaseConfigured } from '../net/transports'
 import { makeRoomCode } from './rng'
 
 export type MatchGame = GameId | 'any'
-/** 모르는 사람끼리 하기엔 부적절한 그림이 나올 수 있어 랜덤 매칭에서 제외 */
-export const MATCH_EXCLUDE: GameId[] = ['draw']
+/** 랜덤 매칭에서 뺄 게임 (지금은 없음) */
+export const MATCH_EXCLUDE: GameId[] = []
 export const MATCH_GAMES = GAMES.filter((g) => !MATCH_EXCLUDE.includes(g.id))
 
 interface Waiter { id: string; game: MatchGame; at: number }

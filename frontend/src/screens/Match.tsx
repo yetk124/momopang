@@ -52,16 +52,15 @@ export function MatchSheet({ open, onClose }: { open: boolean; onClose: () => vo
           <div className="grid grid-cols-4 gap-2 max-h-[46vh] overflow-y-auto">
             <button onClick={() => setGame('any')} aria-pressed={game === 'any'}
               className={`press rounded-2xl py-2.5 flex flex-col items-center gap-1 border-2 ${game === 'any' ? 'border-lav-400 bg-lav-50' : 'border-transparent bg-white'}`}>
-              <span className="text-[26px] leading-[40px]">🎲</span><span className="text-[12px] font-bold">아무거나</span>
+              <GameIcon id="any" className="w-10 h-10" /><span className="text-[12px] font-bold">아무거나</span>
             </button>
             {MATCH_GAMES.map((g) => (
               <button key={g.id} onClick={() => setGame(g.id)} aria-pressed={game === g.id}
                 className={`press rounded-2xl py-2.5 flex flex-col items-center gap-1 border-2 ${game === g.id ? 'border-lav-400' : 'border-transparent'}`} style={{ background: g.tint }}>
-                <GameIcon id={g.id} className="w-10 h-10" /><span className="text-[12px] font-bold truncate max-w-full px-1">{g.name}</span>
+                <GameIcon id={g.id} className="w-10 h-10" /><span className="text-[11.5px] font-bold whitespace-nowrap tracking-tight">{g.name}</span>
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-ink-mute mt-2">모르는 사람과 만나기 때문에 그림 맞히기는 친구랑만 할 수 있어요.</p>
           {err && <p role="alert" className="mt-2 text-[14px] font-semibold text-[#C9433A] text-center">{err}</p>}
           <Button data-track="match_begin" className="w-full mt-3" onClick={begin}>매칭 시작</Button>
         </>
@@ -72,7 +71,7 @@ export function MatchSheet({ open, onClose }: { open: boolean; onClose: () => vo
           <div className="relative w-28 h-28 grid place-items-center">
             {phase === 'wait' && <span className="absolute inset-0 rounded-full border-4 border-lav-200 border-t-lav-500 animate-spin" />}
             <div className="w-20 h-20 rounded-full grid place-items-center" style={{ background: game === 'any' ? '#F1ECFF' : META[game].tint }}>
-              {game === 'any' ? <span className="text-[36px]">🎲</span> : <GameIcon id={game} className="w-12 h-12" />}
+              <GameIcon id={game === 'any' ? 'any' : game} className="w-12 h-12" />
             </div>
           </div>
           {phase === 'found' ? (

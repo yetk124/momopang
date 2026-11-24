@@ -19,6 +19,10 @@ import { BombGame } from '../games/bomb/BombGame'
 import { MemoryGame } from '../games/memory/MemoryGame'
 import { PairsGame } from '../games/pairs/PairsGame'
 import { MergeGame } from '../games/merge/MergeGame'
+import { balanceMatch } from '../games/balance/engine'
+import { SuikaGame } from '../games/suika/SuikaGame'
+import { OmokGame } from '../games/omok/OmokGame'
+import { BalanceGame } from '../games/balance/BalanceGame'
 import { sfx } from '../lib/sfx'
 import type { PlayerSlot, RoomState } from '../net/protocol'
 import { hostNow, inviteLink, selectGameView, useStore } from '../store'
@@ -92,6 +96,18 @@ function Lobby({ room }: { room: RoomState }) {
             <span className="text-[11px] text-ink-mute">바꾸면 둘 다 준비가 풀려요</span>
           </div>
           <div className="grid grid-cols-4 gap-1.5">
+            <button onClick={() => {
+                sfx.tap()
+                // 지금 고른 게임은 빼고 랜덤으로 하나
+                const pool = GAMES.filter((x) => x.id !== room.game)
+                const pick = pool[Math.floor(Math.random() * pool.length)]
+                if (pick) intent({ type: 'select', game: pick.id })
+              }}
+              aria-label="아무 게임이나 랜덤으로 고르기" data-track="lobby_random_game"
+              style={{ paddingBlock: 'clamp(6px, 1.4svh, 14px)' }} className="press rounded-xl px-0.5 flex flex-col items-center justify-center gap-1 bg-white/70 border-2 border-dashed border-lav-200">
+              <GameIcon id="any" className="w-[clamp(28px,4.6svh,42px)] h-[clamp(28px,4.6svh,42px)]" />
+              <span className="text-[clamp(11px,1.5svh,13px)] font-bold leading-tight whitespace-nowrap text-lav-500">아무거나</span>
+            </button>
             {GAMES.map((x) => {
               const on = room.game === x.id
               return (
@@ -237,6 +253,9 @@ function GameScreen({ room }: { room: RoomState }) {
         {view.game === 'memory' && <MemoryGame {...props} />}
         {view.game === 'pairs' && <PairsGame {...props} />}
         {view.game === 'merge' && <MergeGame {...props} />}
+        {view.game === 'suika' && <SuikaGame {...props} />}
+        {view.game === 'omok' && <OmokGame {...props} />}
+        {view.game === 'balance' && <BalanceGame {...props} />}
       </div>
       <ConfirmSheet open={leaving} title="게임을 그만둘까요?" desc="지금 나가면 상대방의 승리로 처리돼요." confirm="나가기" onClose={() => setLeaving(false)} onConfirm={() => st.leaveRoom()} />
     </div>
@@ -264,7 +283,11 @@ function Result({ room }: { room: RoomState }) {
   const oppId = opp?.id ?? Object.keys(r.scores).find((k) => k !== meId) ?? ''
   const oppSlot = opp ?? null
   const win = r.winnerId === meId, draw = r.winnerId === null
-  const title = draw ? '무승부!' : win ? `${me.nickname}님 승리!` : `${oppSlot?.nickname ?? '상대'}님 승리!`
+  const isBalance = r.game === 'balance'
+  const bSame = r.stats[meId]?.same ?? 0, bTotal = bSame + (r.stats[meId]?.diff ?? 0)
+  const pct = balanceMatch(bSame, bTotal)
+  const title = isBalance ? `우리 궁합 ${pct}%` : draw ? '무승부!' : win ? `${me.nickname}님 승리!` : `${oppSlot?.nickname ?? '상대'}님 승리!`
+  const balanceNote = pct >= 80 ? '거의 한 몸! 생각이 정말 잘 통해요 💕' : pct >= 50 ? '통하는 듯 다른 듯, 얘깃거리가 많은 사이 😆' : '정반대 취향! 그래서 더 재밌는 사이 🔥'
   const reasonNote = r.endReason === 'left' || r.endReason === 'disconnect' ? (win ? '상대가 나가서 승리로 처리됐어요' : '연결이 끊겨 게임이 끝났어요') : null
   const labels = ENGINES[r.game].statLabels
   const rm = room.rematch
@@ -272,17 +295,18 @@ function Result({ room }: { room: RoomState }) {
 
   return (
     <div className="relative flex-1 flex flex-col px-5 pb-6 overflow-hidden" style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top))' }}>
-      {win && <Confetti />}
+      {(win || (isBalance && pct >= 50)) && <Confetti />}
       <div className="text-center mt-1">
-        <Trophy kind={win ? 'win' : draw ? 'draw' : 'lose'} />
+        {isBalance ? <div className="text-[72px] leading-none animate-pop" aria-hidden>{pct >= 80 ? '💞' : pct >= 50 ? '💗' : '🔥'}</div> : <Trophy kind={win ? 'win' : draw ? 'draw' : 'lose'} />}
         <p className="text-[14px] font-bold text-ink-soft mt-2">{meta.name} 종료</p>
         <h1 className="font-round text-[30px] leading-tight">{title}{win && ' 🎉'}</h1>
+        {isBalance && !reasonNote && <p className="text-[14px] font-bold text-ink-soft mt-1">{balanceNote}</p>}
         {reasonNote && <p className="text-[13px] text-ink-mute mt-1">{reasonNote}</p>}
       </div>
-      <div className="grid grid-cols-2 gap-3 mt-3">
+      {!isBalance && <div className="grid grid-cols-2 gap-3 mt-3">
         <ScoreCard name={me.nickname} avatar={me.avatar} score={r.scores[meId] ?? 0} best={r.winnerId === meId} />
         <ScoreCard name={oppSlot?.nickname ?? '상대'} avatar={oppSlot?.avatar ?? 'tiger'} score={r.scores[oppId] ?? 0} best={r.winnerId === oppId} />
-      </div>
+      </div>}
       <div className="mt-3 rounded-3xl bg-white/80 px-4 py-3 shadow-soft">
         <table className="w-full text-[14px]">
           <thead><tr className="text-ink-mute text-[12px]"><th className="text-left font-bold pb-1">기록</th><th className="text-right font-bold">나</th><th className="text-right font-bold">상대</th></tr></thead>
