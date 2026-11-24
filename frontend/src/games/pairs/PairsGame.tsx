@@ -12,6 +12,7 @@ export function PairsGame({ state, t, meId, oppId }: GameProps<PairsState>) {
   const oppName = players.find((p) => p.id === oppId)?.nickname ?? '상대'
   const myTurn = state.turn === meId
   const waiting = state.open.length === 2
+  const peeking = t < (state.peekUntil ?? 0)
   const left = Math.max(0, TURN_MS - (t - state.turnStart))
   const found = Object.keys(state.owner).length / 2
 
@@ -20,7 +21,7 @@ export function PairsGame({ state, t, meId, oppId }: GameProps<PairsState>) {
   const turnRef = useRef(state.turn)
   useEffect(() => { if (state.turn !== turnRef.current) { turnRef.current = state.turn; if (state.turn === meId) sfx.count() } }, [state.turn, meId])
 
-  const status = waiting
+  const status = peeking ? '잘 봐두세요! 👀' : t < state.turnStart ? '곧 시작해요' : waiting
     ? (state.last && !state.last.ok ? '아쉽! 차례가 넘어가요' : '…')
     : myTurn ? (state.streak > 0 ? `연속 ${state.streak}번째! 한 번 더` : '내 차례! 두 장을 뒤집어요') : `${oppName}님 차례 · 잘 봐두세요`
 
@@ -33,13 +34,13 @@ export function PairsGame({ state, t, meId, oppId }: GameProps<PairsState>) {
       <div className={`rounded-2xl px-4 py-2.5 text-center font-extrabold text-[15px] transition ${myTurn && !waiting ? 'bg-lav-400 text-white shadow-pop' : 'bg-peach-100 text-ink'}`}>
         {status}
       </div>
-      <div className="h-1.5 rounded-full bg-white overflow-hidden"><div className={`h-full transition-all duration-100 ${myTurn ? 'bg-lav-400' : 'bg-peach-400'}`} style={{ width: waiting ? '0%' : `${(left / TURN_MS) * 100}%` }} /></div>
+      <div className="h-1.5 rounded-full bg-white overflow-hidden"><div className={`h-full transition-all duration-100 ${myTurn ? 'bg-lav-400' : 'bg-peach-400'}`} style={{ width: waiting || t < state.turnStart ? '0%' : `${(Math.min(left, TURN_MS) / TURN_MS) * 100}%` }} /></div>
       <Fit aspect={0.62} max={320}>
         <div className="grid grid-cols-4 gap-2 w-full h-full content-center">
           {state.board.map((face, i) => {
             const own = state.owner[i]
             const isOpen = state.open.includes(i)
-            const up = !!own || isOpen
+            const up = !!own || isOpen || peeking
             const wrong = isOpen && waiting && !own
                         return (
               <button key={i} disabled={!myTurn || waiting || up} onPointerDown={(e) => { e.preventDefault(); if (myTurn && !waiting && !up) { sfx.flip(); act({ cell: i }) } }}

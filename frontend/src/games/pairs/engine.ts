@@ -5,6 +5,9 @@ export const PAIRS_TIME = 150_000
 export const PAIRS = 10 // 4×5
 export const CLOSE_MS = 1000
 export const TURN_MS = 8000
+/** 시작할 때 모든 카드를 잠깐 보여주는 시간 */
+export const PEEK_MS = 1000
+const PEEK_FROM = 300
 export const FACES = ['cat', 'rabbit', 'puppy', 'headphone', 'panda', 'hamster', 'penguin', 'bear', 'cake', 'pancake', 'cookie', 'macaron', 'onigiri', 'ramen', 'boba', 'pudding'] as const
 
 export interface PairsPlayer { score: number; pairs: number; attempts: number; bestStreak: number }
@@ -21,6 +24,8 @@ export interface PairsState {
   streak: number
   p: Record<string, PairsPlayer>
   last: { pid: string; ok: boolean; t: number } | null
+  /** 이 시각까지 모든 카드 공개 (시작 미리보기) */
+  peekUntil?: number
 }
 export type PairsAction = { cell: number }
 
@@ -37,7 +42,7 @@ export const pairsEngine: Engine<PairsState, PairsAction> = {
     const board = shuffle([...Array(PAIRS).keys(), ...Array(PAIRS).keys()], r)
     const p: Record<string, PairsPlayer> = {}
     for (const id of players) p[id] = { score: 0, pairs: 0, attempts: 0, bestStreak: 0 }
-    return { players, faces, board, owner: {}, open: [], closeAt: 0, turn: players[Math.floor(r() * players.length)] ?? players[0], turnStart: 600, streak: 0, p, last: null }
+    return { players, faces, board, owner: {}, open: [], closeAt: 0, turn: players[Math.floor(r() * players.length)] ?? players[0], turnStart: PEEK_FROM + PEEK_MS + 400, streak: 0, p, last: null, peekUntil: PEEK_FROM + PEEK_MS }
   },
   apply(s, pid, a, t) {
     if (t >= PAIRS_TIME || pid !== s.turn || t < s.turnStart || s.open.length >= 2) return null
@@ -59,10 +64,10 @@ export const pairsEngine: Engine<PairsState, PairsAction> = {
   },
   tick(s, t) {
     if (s.open.length === 2 && s.closeAt && t >= s.closeAt) { const n = clone(s); pass(n, t); return n }
-    if (s.open.length < 2 && t - s.turnStart >= TURN_MS) { const n = clone(s); n.last = { pid: s.turn, ok: false, t }; pass(n, t); return n }
+    if (s.open.length < 2 && t >= s.turnStart && t - s.turnStart >= TURN_MS) { const n = clone(s); n.last = { pid: s.turn, ok: false, t }; pass(n, t); return n }
     return null
   },
-  timer: (s, t) => (s.open.length === 2 ? null : Math.min(TURN_MS - (t - s.turnStart), PAIRS_TIME - t)),
+  timer: (s, t) => (s.open.length === 2 || t < s.turnStart ? null : Math.min(TURN_MS - (t - s.turnStart), PAIRS_TIME - t)),
   isOver: (s, t) => t >= PAIRS_TIME || Object.keys(s.owner).length >= s.board.length,
   result(s) {
     const scores: Record<string, number> = {}; const stats: Record<string, Record<string, number>> = {}

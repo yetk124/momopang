@@ -26,6 +26,7 @@ export function QuizGame({ state, t, meId, oppId }: GameProps<QuizState>) {
     <div className="flex-1 flex flex-col gap-3">
       <p className="text-center text-[13px] font-bold text-ink-mute">문제 {state.idx + 1} / {state.qs.length}</p>
       <div key={state.idx} className="rounded-3xl bg-white shadow-card px-5 py-7 text-center animate-pop">
+        {ready && q.cat && <span className="inline-block mb-1.5 rounded-full bg-lav-50 px-2.5 py-0.5 text-[12px] font-bold text-lav-500">{q.cat}</span>}
         <p className="text-[22px] font-extrabold leading-snug text-balance">{ready ? q.q : '준비…'}</p>
       </div>
       <div className="grid grid-cols-2 gap-2.5">

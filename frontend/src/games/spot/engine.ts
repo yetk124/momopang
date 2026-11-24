@@ -50,17 +50,27 @@ export function snapTap(s: SpotState, x: number, y: number, wPx: number, hPx: nu
   return best >= 0 ? { x: diffs[best].x, y: diffs[best].y } : { x, y }
 }
 
-/** 최근에 나온 그림은 피해서 고르기 (방장 기기에만 기록) */
-const RECENT_KEY = 'momopang.spot.recent'
+/** 안 해본 그림부터 랜덤으로 고르기 — 다 해보면 기록을 비우고 다시 (방금 한 그림은 제외) */
+const PLAYED_KEY = 'momopang.spot.played'
+const readPlayed = (): number[] => { try { const v = JSON.parse(localStorage.getItem(PLAYED_KEY) || '[]'); return Array.isArray(v) ? v.filter((x) => Number.isInteger(x)) : [] } catch { return [] } }
+/** 이 기기에서 해본 그림으로 기록 (방장·참가자 모두) */
+export function markSpotPlayed(idx: number) {
+  const list = readPlayed().filter((x) => x !== idx)
+  try { localStorage.setItem(PLAYED_KEY, JSON.stringify([...list, idx])) } catch { /* noop */ }
+}
 function pickPuzzle(r: () => number) {
   const n = SPOT_PUZZLES.length
-  let recent: number[] = []
-  try { recent = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]') } catch { /* noop */ }
-  const keep = Math.min(Math.max(n - 2, 0), 4) // 최근 4개(그림이 적으면 n-2개)는 제외
-  const avoid = new Set(recent.slice(-keep))
-  const pool = Array.from({ length: n }, (_, i) => i).filter((i) => !avoid.has(i))
-  const pick = (pool.length ? pool : Array.from({ length: n }, (_, i) => i))[Math.floor(r() * (pool.length || n))]
-  try { localStorage.setItem(RECENT_KEY, JSON.stringify([...recent, pick].slice(-8))) } catch { /* noop */ }
+  const all = Array.from({ length: n }, (_, i) => i)
+  const played = readPlayed()
+  let pool = all.filter((i) => !played.includes(i))
+  if (!pool.length) {
+    const last = played[played.length - 1]
+    try { localStorage.setItem(PLAYED_KEY, JSON.stringify(last === undefined ? [] : [last])) } catch { /* noop */ }
+    pool = all.filter((i) => i !== last)
+    if (!pool.length) pool = all
+  }
+  const pick = pool[Math.floor(r() * pool.length)]
+  markSpotPlayed(pick)
   return pick
 }
 

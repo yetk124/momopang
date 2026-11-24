@@ -2,11 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { sfx } from '../../lib/sfx'
 import { useStore } from '../../store'
 import type { GameProps } from '../rush/RushGame'
-import { puzzleOf, snapTap, type SpotState } from './engine'
+import { markSpotPlayed, puzzleOf, snapTap, type SpotState } from './engine'
 
 export function SpotGame({ state, t, meId }: GameProps<SpotState>) {
   const act = useStore((s) => s.act)
   const pz = puzzleOf(state)
+  // 참가자 기기에도 '해본 그림'으로 기록 (나중에 방장이 되면 안 해본 그림부터)
+  useEffect(() => { markSpotPlayed(state.puzzle) }, [state.puzzle])
   const wrap = useRef<HTMLDivElement>(null)
   const [box, setBox] = useState({ w: 300, h: 600 })
   const [miss, setMiss] = useState<{ id: number; x: number; y: number } | null>(null)

@@ -168,6 +168,8 @@ export class Bot {
         const ps = st as PairsState
         const seen = (this.memo.get('seen') as Map<number, number>) ?? new Map<number, number>()
         this.memo.set('seen', seen)
+        // 시작 미리보기 때 사람처럼 몇 장만 기억
+        if (t < (ps.peekUntil ?? 0) && !this.memo.get('peeked')) { this.memo.set('peeked', true); ps.board.forEach((f, c) => { if (Math.random() < 0.3) seen.set(c, f) }) }
         ps.open.forEach((c) => { if (Math.random() < 0.85) seen.set(c, ps.board[c]) }) // 상대가 뒤집은 것도 (가끔 까먹으며) 기억
         Object.keys(ps.owner).forEach((c) => seen.delete(+c))
         if (ps.turn !== me || ps.open.length >= 2 || t < ps.turnStart || t < this.nextAt) return

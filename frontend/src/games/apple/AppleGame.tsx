@@ -27,11 +27,16 @@ export function AppleGame({ state, meId }: GameProps<AppleState>) {
   const start = useRef<{ r: number; c: number } | null>(null)
   const lastSent = useRef(0)
   const prevBoard = useRef(state.board)
+  // 새 사과판 알림
+  const [fresh, setFresh] = useState(0)
+  const prevRound = useRef(state.round ?? 0)
+  useEffect(() => { const r = state.round ?? 0; if (r !== prevRound.current) { prevRound.current = r; setFresh(r); sfx.pop(); const id = setTimeout(() => setFresh(0), 1300); return () => clearTimeout(id) } }, [state.round])
 
   useEffect(() => onEph((from, k, d) => { if (k === 'sel' && from !== meId) { const r = cleanRect(d); if (r !== undefined) setOpSel(r) } }), [meId])
   // 제거 애니메이션
   useEffect(() => {
     const prev = prevBoard.current; prevBoard.current = state.board
+    if ((state.round ?? 0) !== 0 && state.board.every((v) => v > 0)) return // 새 판으로 바뀐 순간
     const removed = state.board.map((v, i) => (prev[i] > 0 && v === 0 ? i : -1)).filter((i) => i >= 0)
     if (!removed.length) return
     const mine = state.last?.pid === meId
@@ -75,7 +80,7 @@ export function AppleGame({ state, meId }: GameProps<AppleState>) {
           style={{ width: W, height: H, backgroundImage: 'linear-gradient(#E3F1D2 1px,transparent 1px),linear-gradient(90deg,#E3F1D2 1px,transparent 1px)', backgroundSize: `${cell}px ${cell}px` }}
         >
           {state.board.map((v, i) => v > 0 && (
-            <AppleCell key={i} v={v} x={(i % COLS) * cell} y={Math.floor(i / COLS) * cell} s={cell} hl={!!sel && i >= 0 && inRect(sel, i)} />
+            <AppleCell key={`${state.round ?? 0}-${i}`} v={v} x={(i % COLS) * cell} y={Math.floor(i / COLS) * cell} s={cell} hl={!!sel && i >= 0 && inRect(sel, i)} />
           ))}
           {ghosts.map((g) => g.cells.map((i, k) => (
             <div key={`${g.id}-${i}`} className="absolute pointer-events-none" style={{ left: (i % COLS) * cell, top: Math.floor(i / COLS) * cell, width: cell, height: cell, animation: 'appleOut .55s ease-in forwards' }}>
@@ -83,6 +88,7 @@ export function AppleGame({ state, meId }: GameProps<AppleState>) {
             </div>
           )))}
           {opSel && <div className="absolute rounded-xl border-[3px] border-peach-400 bg-peach-200/30 pointer-events-none" style={box(opSel)} />}
+          {fresh > 0 && <div className="absolute inset-0 grid place-items-center pointer-events-none"><span className="rounded-full bg-white/95 shadow-card px-5 py-2 font-round text-[22px] text-apple animate-pop">새 사과판! 🍎</span></div>}
           {sel && <div className={`absolute rounded-xl border-[3px] pointer-events-none ${sum === 10 ? 'border-mint-500 bg-mint-300/30' : 'border-lav-500 bg-lav-200/30'}`} style={box(sel)} />}
         </div>
       </div>

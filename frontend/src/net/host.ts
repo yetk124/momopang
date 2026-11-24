@@ -220,5 +220,5 @@ export class HostController {
   private broadcast() { this.lastBroadcast = Date.now(); this.transport.send({ t: 'room', s: this.state }) }
 }
 
-const DUR: Record<string, number> = { apple: 120_000, halli: 90_000, rush: 60_000, block: 180_000, spot: 90_000, word: 90_000, pairs: 150_000, merge: 120_000, draw: Infinity }
+const DUR: Record<string, number> = { apple: 60_000, halli: 90_000, rush: 20_000, block: 180_000, spot: 90_000, word: 90_000, pairs: 150_000, merge: 120_000, draw: Infinity }
 const ENGINES_DURATION = (g: string) => DUR[g] ?? Infinity

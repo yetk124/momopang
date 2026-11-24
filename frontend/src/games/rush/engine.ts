@@ -1,12 +1,15 @@
 import { mulberry32, shuffle } from '../../lib/rng'
 import { clone, type Engine } from '../types'
 
-export const RUSH_TIME = 60_000
+export const RUSH_TIME = 20_000
 export interface RushPlayer { set: number; board: number[]; next: number; score: number; sets: number; taps: number; errors: number; errAt: number }
 export interface RushState { seed: number; p: Record<string, RushPlayer> }
 export type RushAction = { cell: number }
 
-export const rushBoard = (seed: number, set: number) => shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9], mulberry32(seed + set * 7919))
+/** set번째 판: 1~9, 10~18, 19~27 … 처럼 숫자가 이어져요 */
+export const rushBoard = (seed: number, set: number) => shuffle(Array.from({ length: 9 }, (_, i) => set * 9 + i + 1), mulberry32(seed + set * 7919))
+/** 지금 판에서 몇 개 눌렀는지 (0~9) */
+export const rushProgress = (p: { next: number; set: number }) => p.next - 1 - p.set * 9
 
 export const rushEngine: Engine<RushState, RushAction> = {
   id: 'rush',
@@ -25,7 +28,7 @@ export const rushEngine: Engine<RushState, RushAction> = {
     if (v < me.next) return null // 이미 누른 칸
     if (v === me.next) {
       me.next++; me.score += 1; me.taps++
-      if (me.next > 9) { me.sets++; me.score += 3; me.set++; me.board = rushBoard(s.seed, me.set); me.next = 1 }
+      if (me.next > (me.set + 1) * 9) { me.sets++; me.score += 3; me.set++; me.board = rushBoard(s.seed, me.set) } // 다음 판은 이어지는 숫자
     } else { me.errors++; me.errAt = t }
     return n
   },
