@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Avatar } from '../components/Avatar'
 import { GameIcon, IcBot, IcNext, IcUsers } from '../components/Icons'
 import { Button, Hero, Sheet } from '../components/ui'
@@ -131,20 +131,6 @@ export function Home() {
   const [code, setCode] = useState('')
   const consent = useSettings((s) => s.analytics)
   // 메인 버튼이 화면 밖으로 나가면 아래에 고정 버튼 표시
-  const ctaRef = useRef<HTMLDivElement>(null)
-  const endRef = useRef<HTMLDivElement>(null)
-  const [stickyCta, setStickyCta] = useState(false)
-  useEffect(() => {
-    const el = ctaRef.current; if (!el || typeof IntersectionObserver === 'undefined') return
-    let ctaOut = false, atEnd = false
-    const upd = () => setStickyCta(ctaOut && !atEnd)
-    const io = new IntersectionObserver(([e]) => { ctaOut = !e.isIntersecting && e.boundingClientRect.top < 0; upd() }, { threshold: 0 })
-    io.observe(el)
-    // 목록 끝까지 내리면 고정 버튼 숨김 (마지막 카드를 가리지 않게)
-    const io2 = endRef.current ? new IntersectionObserver(([e]) => { atEnd = e.isIntersecting; upd() }, { threshold: 0 }) : null
-    if (endRef.current) io2?.observe(endRef.current)
-    return () => { io.disconnect(); io2?.disconnect() }
-  }, [])
   const setSettings = useSettings((s) => s.set)
 
   return (
@@ -162,7 +148,7 @@ export function Home() {
         <p className="mt-2 text-ink-soft font-semibold text-[15px]">전화하면서, 게임도 하고 더 가까워져요 💜</p>
         <div className="mx-auto mt-2 mb-4 w-full" style={{ maxWidth: 'min(285px, calc(21dvh * 1.9))' }}><Hero className="w-full h-auto" /></div>
         <div className="mt-2 flex flex-col gap-2">
-          <div ref={ctaRef}>
+          <div>
             <Button data-track="cta_hero" onClick={() => createRoom(defaultMode())} disabled={busy} className="w-full text-[17px] min-h-[58px]">
               {busy ? '연결 중…' : <>친구와 게임하기 <IcNext className="w-5 h-5" /></>}
             </Button>
@@ -186,13 +172,6 @@ export function Home() {
         </div>
       </section>
 
-      {stickyCta && (
-        <div className="fixed inset-x-0 z-30 flex justify-center px-4 pointer-events-none" style={{ bottom: 'calc(72px + env(safe-area-inset-bottom))' }}>
-          <Button data-track="cta_sticky" onClick={() => createRoom(defaultMode())} disabled={busy} className="w-full max-w-[408px] pointer-events-auto animate-fadeup shadow-[0_10px_30px_-8px_rgba(143,123,234,.7)]">
-            친구와 게임하기 <IcNext className="w-5 h-5" />
-          </Button>
-        </div>
-      )}
 
       <section className="px-5 mt-6">
         <div className="flex items-end justify-between mb-2.5">
@@ -214,10 +193,9 @@ export function Home() {
             </button>
           ))}
         </div>
-        <div ref={endRef} className="h-1" />
       </section>
 
-      {analyticsAvailable && consent === null && !stickyCta && (
+      {analyticsAvailable && consent === null && (
         <div className="fixed bottom-20 inset-x-0 z-40 flex justify-center px-4 pointer-events-none">
           <div className="w-full max-w-[408px] rounded-3xl bg-white shadow-card p-4 pointer-events-auto animate-fadeup" role="dialog" aria-label="사용 통계 수집 안내">
             <p className="font-extrabold text-[15px]">더 좋은 앱을 위해 사용 통계를 모아요</p>

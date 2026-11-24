@@ -40,6 +40,14 @@ export function Sheet({ open, onClose, children, title }: { open: boolean; onClo
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k)
   }, [open, onClose])
+  // 시트가 열려 있는 동안 뒤 페이지 스크롤 고정 (아이폰에서 페이지가 같이 끌려 내려가는 문제)
+  useEffect(() => {
+    if (!open) return
+    const y = window.scrollY, b = document.body.style
+    const prev = { position: b.position, top: b.top, left: b.left, right: b.right, overflow: b.overflow }
+    b.position = 'fixed'; b.top = `-${y}px`; b.left = '0'; b.right = '0'; b.overflow = 'hidden'
+    return () => { Object.assign(b, prev); window.scrollTo(0, y) }
+  }, [open])
   if (!open) return null
   // 손잡이·제목 영역을 아래로 끌어내리면 닫힘
   const start = (e: React.PointerEvent) => { drag.current = { y: e.clientY, t: Date.now() }; (e.currentTarget as Element).setPointerCapture?.(e.pointerId) }
@@ -51,7 +59,7 @@ export function Sheet({ open, onClose, children, title }: { open: boolean; onClo
   }
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal>
-      <button aria-label="닫기" className="absolute inset-0 bg-ink/30 backdrop-blur-[2px] animate-fadeup" style={{ opacity: Math.max(0.2, 1 - dy / 400) }} onClick={onClose} />
+      <button aria-label="닫기" className="absolute inset-0 bg-ink/30 backdrop-blur-[2px] animate-fadeup touch-none" style={{ opacity: Math.max(0.2, 1 - dy / 400) }} onClick={onClose} />
       <div className="relative w-full max-w-[440px]" style={{ transform: dy ? `translateY(${dy}px)` : undefined, transition: drag.current ? 'none' : 'transform .2s ease-out' }}>
       <div className="w-full bg-cream rounded-t-4xl px-6 pb-8 shadow-card max-h-[92dvh] flex flex-col" 
         style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))', animation: 'sheetUp .28s cubic-bezier(.2,.9,.3,1) both' }}>
@@ -59,7 +67,7 @@ export function Sheet({ open, onClose, children, title }: { open: boolean; onClo
           <div className="mx-auto h-1.5 w-10 rounded-full bg-lav-200" aria-hidden />
           {title && <h2 className="text-xl font-extrabold mt-3">{title}</h2>}
         </div>
-        <div className="overflow-y-auto min-h-0 -mx-1 px-1">{children}</div>
+        <div className="overflow-y-auto overscroll-contain min-h-0 -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>{children}</div>
       </div>
       </div>
     </div>
