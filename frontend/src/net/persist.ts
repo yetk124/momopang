@@ -28,17 +28,18 @@ export async function persistResult(code: string, r: ResultData) {
 export interface RankRow { nickname: string; avatar: string; wins: number; games: number; me?: boolean }
 
 /** 게임 끝날 때 내 기록 1판 추가 (서버 함수에서 검증·도배 방지) */
-export async function recordGame(deviceId: string, nickname: string, avatar: string, win: boolean) {
+/** 서버가 판마다 1번만, 승리는 한 사람만, 시간당 횟수 제한을 걸어서 반영 (20261125010000_anticheat.sql) */
+export async function recordGame(deviceId: string, nickname: string, avatar: string, win: boolean, game: string, sessionId: string) {
   const sb = getSupabase(); if (!sb) return
-  try { await sb.rpc('record_game', { p_device: deviceId, p_nickname: nickname, p_avatar: avatar, p_win: win }) } catch { /* optional */ }
+  try { await sb.rpc('record_game', { p_device: deviceId, p_nickname: nickname, p_avatar: avatar, p_win: win, p_game: game, p_session: sessionId }) } catch { /* optional */ }
 }
 
-/** 전체 사용자 승리 TOP N */
-export async function fetchTop(n = 3): Promise<RankRow[] | null> {
+/** 전체 사용자 승리 TOP N (기기 ID는 받지 않고, 내 기록인지만 받음) */
+export async function fetchTop(deviceId: string, n = 3): Promise<RankRow[] | null> {
   const sb = getSupabase(); if (!sb) return null
   try {
-    const { data, error } = await sb.from('player_stats').select('device_id, nickname, avatar, wins, games').gt('wins', 0).order('wins', { ascending: false }).order('updated_at', { ascending: true }).limit(n)
-    if (error || !data) return null
-    return data.map((r) => ({ nickname: r.nickname, avatar: r.avatar, wins: r.wins, games: r.games, me: false, id: r.device_id } as RankRow & { id: string }))
+    const { data, error } = await sb.rpc('top_players', { p_device: deviceId, p_n: n })
+    if (error || !Array.isArray(data)) return null
+    return (data as RankRow[]).map((r) => ({ nickname: r.nickname, avatar: r.avatar, wins: r.wins, games: r.games, me: !!r.me }))
   } catch { return null }
 }

@@ -8,7 +8,6 @@ import { fetchTop, type RankRow } from '../net/persist'
 import { supabaseConfigured } from '../net/transports'
 import { useStore } from '../store'
 import { fetchHistory, isKakao } from '../lib/account'
-import { getSupabase } from '../net/transports'
 
 const MEDAL = ['#FFC93C', '#C9CFDB', '#E8A670']
 
@@ -33,11 +32,10 @@ function Top3() {
   useEffect(() => {
     if (!supabaseConfigured) return
     let alive = true
-    void fetchTop(3).then(async (r) => {
+    void fetchTop(getDeviceId(), 3).then((r) => {
       if (!alive) return
       if (!r) { setFailed(true); setRows(localTop(me.nickname, me.avatar)); return }
-      const myIds = [getDeviceId(), (await getSupabase()?.auth.getSession())?.data.session?.user.id]
-      setRows(r.map((x) => ({ ...x, me: myIds.includes((x as RankRow & { id?: string }).id) })))
+      setRows(r)
     })
     return () => { alive = false }
   }, [me.nickname, me.avatar])

@@ -329,7 +329,7 @@ function onRoom(s: RoomState) {
     void saveHistory(item) // 카카오 로그인 상태면 서버에도 저장
     duckMusic(2600)
     if (r.winnerId === me) sfx.win(); else if (r.winnerId) sfx.lose(); else sfx.draw()
-    if (st.mode === 'supabase' && !isKid()) void recordGame(getDeviceId(), st.me.nickname, st.me.avatar, r.winnerId === me) // 어린이 모드는 랭킹에 안 올림
+    if (st.mode === 'supabase' && !isKid()) void recordGame(getDeviceId(), st.me.nickname, st.me.avatar, r.winnerId === me, r.game, r.sessionId) // 어린이 모드는 랭킹에 안 올림
     // 한정판 아바타 해금 체크
     const fresh = recordProgress(r.game, item.outcome)
     useStore.setState({ unlockedNow: fresh })
