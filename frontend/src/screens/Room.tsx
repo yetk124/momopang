@@ -1,6 +1,8 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Avatar } from '../components/Avatar'
 import { SafetyActions } from '../components/SafetyActions'
+import { kakaoShareAvailable, preloadKakao, shareRoomToKakao } from '../lib/kakaoShare'
+import { track } from '../lib/analytics'
 import trophyWin from '../assets/trophy-crown.webp'
 import trophyDraw from '../assets/trophy-moon.webp'
 import trophyLose from '../assets/trophy-bear.webp'
@@ -55,6 +57,11 @@ async function copy(text: string) {
   try { await navigator.clipboard.writeText(text); useStore.getState().showToast('복사했어요!') }
   catch { useStore.getState().showToast(`복사가 안 되면 직접 전해주세요: ${text}`) }
 }
+async function shareKakao(room: RoomState, nickname: string) {
+  track('invite_kakao', { game: room.game ?? 'none' })
+  const ok = await shareRoomToKakao({ code: room.code, url: inviteLink(room.code), nickname, game: room.game ? META[room.game].name : undefined })
+  if (!ok) await share(room.code)
+}
 async function share(code: string) {
   const url = inviteLink(code)
   const text = `모모팡에서 같이 게임하자! 방 코드 ${code}`
@@ -70,6 +77,8 @@ function Lobby({ room }: { room: RoomState }) {
   const canReady = !!g && !!opp && opp.connected
   const status = !opp ? '친구를 기다리는 중…' : !opp.connected ? `${opp.nickname}님 연결이 불안정해요` : !g ? '어떤 게임을 할까요?' : opp.ready && me?.ready ? '곧 시작해요!' : opp.ready ? `${opp.nickname}님은 준비 완료!` : '상대방이 준비 중이에요'
   const modeLabel = mode === 'bot' ? '봇 연습' : mode === 'local' ? '로컬 데모' : '온라인'
+  const kakaoOk = mode === 'supabase' && !opp && kakaoShareAvailable()
+  useEffect(() => { if (kakaoOk) preloadKakao() }, [kakaoOk])
 
   return (
     <div className="h-[100svh] flex flex-col overflow-hidden">
@@ -88,6 +97,11 @@ function Lobby({ room }: { room: RoomState }) {
             <span className="text-[12px] font-bold text-ink-mute shrink-0">방 코드</span>
             <span className="flex-1 text-[22px] font-extrabold tracking-[.16em] tabular-nums">{room.code}</span>
             <button onClick={() => copy(room.code)} aria-label="방 코드 복사" className="w-10 h-10 rounded-xl bg-lav-50 grid place-items-center text-lav-600"><IcCopy className="w-5 h-5" /></button>
+            {kakaoOk && (
+              <button onClick={() => shareKakao(room, me?.nickname ?? '친구')} aria-label="카카오톡으로 초대" className="w-10 h-10 rounded-xl bg-[#FEE500] grid place-items-center active:scale-95 transition">
+                <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden><path fill="#3A1D1D" d="M12 3.5C6.75 3.5 2.5 6.86 2.5 11c0 2.66 1.76 5 4.4 6.33l-.9 3.3c-.08.3.26.54.52.37l3.92-2.6c.51.07 1.03.1 1.56.1 5.25 0 9.5-3.36 9.5-7.5S17.25 3.5 12 3.5z"/></svg>
+              </button>
+            )}
             <button onClick={() => share(room.code)} className="h-10 px-3 rounded-xl bg-lav-400 text-white font-bold text-[14px] flex items-center gap-1"><IcLink className="w-4 h-4" />초대</button>
           </section>
         )}
