@@ -7,6 +7,7 @@ import { getSupabase } from '../net/transports'
 import { currentKakao, signOut } from './auth'
 import { getDeviceId, getLoginType, loadHistory, setLoginType, type HistoryItem } from './storage'
 import { loadProgress, mergeProgress, type LimitedId } from './unlocks'
+import { syncBlocks } from './safety'
 
 const uidOf = async () => (await getSupabase()?.auth.getSession())?.data.session?.user.id ?? null
 export const isKakao = () => getLoginType() === 'kakao'
@@ -57,7 +58,7 @@ export async function onKakaoLogin(localProfile: { nickname: string; avatar: str
   if (local.length) { try { await sb.from('game_history').upsert(local.map((h) => toRow(uid, h)), { onConflict: 'user_id,session_id', ignoreDuplicates: true }) } catch { /* noop */ } }
   const server = await fetchMyProfile()
   if (!server && localProfile) await saveMyProfile(localProfile.nickname, localProfile.avatar)
-  void syncUnlocks()
+  void syncUnlocks(); void syncBlocks()
   return server ?? localProfile
 }
 
@@ -90,7 +91,7 @@ export async function saveUnlocks() {
 export async function checkLoginOnBoot(localProfile: { nickname: string; avatar: string } | null) {
   const k = await currentKakao()
   if (!k) { if (isKakao()) setLoginType('guest'); return null } // 세션 만료 → 게스트로
-  if (isKakao()) { void syncUnlocks(); return null }
+  if (isKakao()) { void syncUnlocks(); void syncBlocks(); return null }
   return onKakaoLogin(localProfile)
 }
 

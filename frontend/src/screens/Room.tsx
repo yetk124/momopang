@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Avatar } from '../components/Avatar'
+import { SafetyActions } from '../components/SafetyActions'
 import trophyWin from '../assets/trophy-crown.webp'
 import trophyDraw from '../assets/trophy-moon.webp'
 import trophyLose from '../assets/trophy-bear.webp'
@@ -239,7 +240,11 @@ function GameScreen({ room }: { room: RoomState }) {
       <div className="flex items-center justify-center gap-3 px-4 py-2">
         <ScoreSide p={me} score={scores[meId] ?? 0} />
         <span className="font-round text-ink-mute text-[18px]">VS</span>
-        {opp && <ScoreSide p={opp} score={scores[opp.id] ?? 0} right />}
+        {opp && (
+          <SafetyActions variant="wrap" className="flex-1 min-w-0 flex" oppName={opp.nickname} game={view.game} room={room.code}>
+            <ScoreSide p={opp} score={scores[opp.id] ?? 0} right more={!!st.matchOpp} />
+          </SafetyActions>
+        )}
       </div>
       <div className="flex-1 flex flex-col px-4 pb-4 min-h-0" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
         {view.game === 'rush' && <RushGame {...props} />}
@@ -263,12 +268,16 @@ function GameScreen({ room }: { room: RoomState }) {
   )
 }
 
-function ScoreSide({ p, score, right }: { p: PlayerSlot; score: number; right?: boolean }) {
+/** more: 랜덤 매칭 상대일 때 '눌러서 신고·차단' 표시(⋯) */
+function ScoreSide({ p, score, right, more }: { p: PlayerSlot; score: number; right?: boolean; more?: boolean }) {
   return (
     <div className={`flex-1 flex items-center gap-2.5 bg-white/80 rounded-full p-1.5 shadow-soft ${right ? 'flex-row-reverse' : ''}`}>
       <Avatar id={p.avatar} size={40} dim={!p.connected} />
       <div className={`flex-1 ${right ? 'text-right' : ''}`}>
-        <p className="text-[11px] font-bold text-ink-mute truncate leading-none">{p.nickname}</p>
+        <p className={`text-[11px] font-bold text-ink-mute leading-none flex items-center gap-0.5 ${right ? 'justify-end' : ''}`}>
+          {more && <span aria-hidden className="text-[13px] leading-none tracking-tighter text-ink-mute/70 mr-0.5">⋯</span>}
+          <span className="truncate">{p.nickname}</span>
+        </p>
         <p key={score} className="text-[22px] font-extrabold tabular-nums leading-tight animate-pop">{score}</p>
       </div>
     </div>
@@ -283,6 +292,9 @@ function Result({ room }: { room: RoomState }) {
   const meta = META[r.game]
   const oppId = opp?.id ?? Object.keys(r.scores).find((k) => k !== meId) ?? ''
   const oppSlot = opp ?? null
+  // 상대가 나가도 신고·차단에 쓸 수 있게 마지막 닉네임 기억
+  const lastOppName = useRef(opp?.nickname ?? '상대')
+  if (opp) lastOppName.current = opp.nickname
   const win = r.winnerId === meId, draw = r.winnerId === null
   const unlockedNow = useStore((st) => st.unlockedNow)
   const isBalance = r.game === 'balance'
@@ -348,6 +360,7 @@ function Result({ room }: { room: RoomState }) {
           <Button variant="secondary" onClick={() => intent({ type: 'toLobby' })}>다른 게임</Button>
           <Button variant="ghost" onClick={() => leaveRoom()}>홈으로 가기</Button>
         </div>
+        <SafetyActions oppName={lastOppName.current} game={r.game} room={room.code} />
       </div>
     </div>
   )

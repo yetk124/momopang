@@ -149,7 +149,7 @@ export function Confetti() {
 export function ConfirmSheet({ open, title, desc, confirm, onConfirm, onClose }: { open: boolean; title: string; desc?: string; confirm: string; onConfirm: () => void; onClose: () => void }) {
   return (
     <Sheet open={open} onClose={onClose} title={title}>
-      {desc && <p className="text-ink-soft mb-5">{desc}</p>}
+      {desc && <p className="text-ink-soft mb-5 whitespace-pre-line">{desc}</p>}
       <div className="grid grid-cols-2 gap-3">
         <Button variant="secondary" onClick={onClose}>취소</Button>
         <Button variant="danger" onClick={onConfirm}>{confirm}</Button>

@@ -7,20 +7,23 @@ import type { GameId } from '../games/types'
 import { GAMES } from '../games/registry'
 import { getSupabase, supabaseConfigured } from '../net/transports'
 import { makeRoomCode } from './rng'
+import { getMatchId, isBlocked, isMid } from './safety'
 
 export type MatchGame = GameId | 'any'
 /** 랜덤 매칭에서 뺄 게임 (지금은 없음) */
 export const MATCH_EXCLUDE: GameId[] = []
 export const MATCH_GAMES = GAMES.filter((g) => !MATCH_EXCLUDE.includes(g.id))
 
-interface Waiter { id: string; game: MatchGame; at: number }
+interface Waiter { id: string; game: MatchGame; at: number; mid?: string }
 type Wire =
-  | { t: 'propose'; from: string; to: string; code: string; game: GameId; at: number }
-  | { t: 'accept'; from: string; to: string; code: string }
+  | { t: 'propose'; from: string; to: string; code: string; game: GameId; at: number; mid?: string }
+  | { t: 'accept'; from: string; to: string; code: string; mid?: string }
+  | { t: 'reject'; from: string; to: string }
   | { t: 'hb'; w: Waiter } // 데모(탭) 모드 전용 하트비트
   | { t: 'bye'; id: string }
 
-export interface MatchResult { code: string; game: GameId; isHost: boolean }
+/** oppMid: 상대의 매칭 ID (신고·차단용) */
+export interface MatchResult { code: string; game: GameId; isHost: boolean; oppMid?: string }
 
 interface Lobby {
   join(me: Waiter): Promise<void>
@@ -45,7 +48,7 @@ class SupabaseLobby implements Lobby {
       ch.on('presence', { event: 'sync' }, () => {
         const st = ch.presenceState<Waiter>()
         const list: Waiter[] = []
-        for (const metas of Object.values(st)) { const w = metas[metas.length - 1]; if (w && typeof w.id === 'string') list.push({ id: w.id, game: w.game, at: Number(w.at) || 0 }) }
+        for (const metas of Object.values(st)) { const w = metas[metas.length - 1]; if (w && typeof w.id === 'string') list.push({ id: w.id, game: w.game, at: Number(w.at) || 0, mid: isMid(w.mid) ? w.mid : undefined }) }
         this.syncCb(list)
       })
       const timer = setTimeout(() => reject(new Error('매칭 서버에 연결하지 못했어요')), 10_000)
@@ -117,9 +120,10 @@ function pairUp(list: Waiter[]) {
  */
 export function startMatch(myId: string, game: MatchGame, onMatched: (r: MatchResult) => void, onError: (msg: string) => void) {
   const lobby: Lobby = supabaseConfigured ? new SupabaseLobby() : new LocalLobby()
-  const me: Waiter = { id: myId, game, at: Date.now() }
+  const myMid = getMatchId()
+  const me: Waiter = { id: myId, game, at: Date.now(), mid: myMid }
   let done = false
-  let proposal: { to: string; code: string; game: GameId; timer: ReturnType<typeof setTimeout> } | null = null
+  let proposal: { to: string; mid?: string; code: string; game: GameId; timer: ReturnType<typeof setTimeout> } | null = null
   const blocked = new Map<string, number>() // 응답 없던 상대는 잠깐 건너뛰기
 
   const finish = (r: MatchResult) => {
@@ -133,7 +137,8 @@ export function startMatch(myId: string, game: MatchGame, onMatched: (r: MatchRe
   const tryPropose = (list: Waiter[]) => {
     if (done || proposal) return
     const now = Date.now()
-    const live = list.filter((w) => w.id === myId || (blocked.get(w.id) ?? 0) < now)
+    // 내가 차단한 사람, 응답 없던/거절한 사람은 빼고 짝 짓기
+    const live = list.filter((w) => w.id === myId || ((blocked.get(w.id) ?? 0) < now && !isBlocked(w.mid)))
     const pair = pairUp(live).find(([a, b]) => a.id === myId || b.id === myId)
     if (!pair) return
     const [host, guest] = pair
@@ -141,10 +146,10 @@ export function startMatch(myId: string, game: MatchGame, onMatched: (r: MatchRe
     const g: GameId = host.game !== 'any' ? host.game : guest.game !== 'any' ? guest.game : randomGame()
     const code = makeRoomCode()
     proposal = {
-      to: guest.id, code, game: g,
+      to: guest.id, mid: guest.mid, code, game: g,
       timer: setTimeout(() => { if (proposal) blocked.set(proposal.to, Date.now() + 8000); proposal = null; tryPropose(lastList) }, 2500),
     }
-    lobby.send({ t: 'propose', from: myId, to: guest.id, code, game: g, at: me.at })
+    lobby.send({ t: 'propose', from: myId, to: guest.id, code, game: g, at: me.at, mid: myMid })
   }
 
   let lastList: Waiter[] = [me]
@@ -152,14 +157,21 @@ export function startMatch(myId: string, game: MatchGame, onMatched: (r: MatchRe
   lobby.onMsg((m) => {
     if (done || !('to' in m) || m.to !== myId) return
     if (m.t === 'propose') {
+      // 내가 차단한 사람이면 거절 (상대는 이번 매칭 동안 나를 다시 고르지 않음)
+      if (isBlocked(m.mid) || isBlocked(lastList.find((w) => w.id === m.from)?.mid)) { lobby.send({ t: 'reject', from: myId, to: m.from }); return }
       // 내가 다른 사람에게 제안 중인데, 나보다 먼저 온 사람이 제안하면 그쪽을 받아들임
       if (proposal) { if (m.at > me.at || (m.at === me.at && m.from > myId)) return; clearTimeout(proposal.timer); proposal = null }
       if (!compatible(game, m.game)) return
-      lobby.send({ t: 'accept', from: myId, to: m.from, code: m.code })
-      finish({ code: m.code, game: m.game, isHost: false })
+      lobby.send({ t: 'accept', from: myId, to: m.from, code: m.code, mid: myMid })
+      finish({ code: m.code, game: m.game, isHost: false, oppMid: isMid(m.mid) ? m.mid : undefined })
     } else if (m.t === 'accept') {
       if (!proposal || proposal.to !== m.from || proposal.code !== m.code) return
-      finish({ code: proposal.code, game: proposal.game, isHost: true })
+      const oppMid = isMid(m.mid) ? m.mid : proposal.mid
+      if (isBlocked(oppMid)) return
+      finish({ code: proposal.code, game: proposal.game, isHost: true, oppMid })
+    } else if (m.t === 'reject') {
+      blocked.set(m.from, Infinity)
+      if (proposal && proposal.to === m.from) { clearTimeout(proposal.timer); proposal = null; tryPropose(lastList) }
     }
   })
 

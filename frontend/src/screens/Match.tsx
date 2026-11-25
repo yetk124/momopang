@@ -5,6 +5,7 @@ import { META } from '../games/registry'
 import { track } from '../lib/analytics'
 import { MATCH_GAMES, randomMatchGame, startMatch, type MatchGame } from '../lib/matchmaking'
 import { sfx } from '../lib/sfx'
+import { matchRestrictedUntil } from '../lib/safety'
 import { useStore } from '../store'
 
 const BOT_OFFER_SEC = 20
@@ -28,8 +29,20 @@ export function MatchSheet({ open, onClose }: { open: boolean; onClose: () => vo
     return () => clearInterval(id)
   }, [phase])
 
-  const begin = () => {
+  const begin = async () => {
     stop(); setErr(null); setSec(0); startedAt.current = Date.now(); setPhase('wait')
+    let cancelled = false
+    cancelRef.current = () => { cancelled = true }
+    // 신고가 여러 번 쌓인 계정은 잠시 랜덤 매칭 제한
+    const until = await matchRestrictedUntil()
+    if (cancelled) return
+    if (until) {
+      const t = new Date(until), hm = `${t.getHours()}시 ${String(t.getMinutes()).padStart(2, '0')}분`
+      cancelRef.current = null; setPhase('pick')
+      setErr(`신고가 여러 번 접수돼서 ${t.getDate() !== new Date().getDate() ? '내일 ' : ''}${hm}까지 랜덤 매칭을 쓸 수 없어요. 친구와 하기는 계속 할 수 있어요`)
+      track('match_restricted', {})
+      return
+    }
     track('match_start', { game })
     cancelRef.current = startMatch(me.id, game, (r) => {
       cancelRef.current = null
@@ -51,8 +64,8 @@ export function MatchSheet({ open, onClose }: { open: boolean; onClose: () => vo
           <p className="text-[13px] text-ink-mute -mt-1 mb-3">지금 접속한 사람과 바로 한 판! 하고 싶은 게임을 골라요.</p>
           <div className="grid grid-cols-4 gap-2 max-h-[46vh] overflow-y-auto">
             <button onClick={() => setGame('any')} aria-pressed={game === 'any'}
-              className={`press rounded-2xl py-2.5 flex flex-col items-center gap-1 border-2 ${game === 'any' ? 'border-lav-400 bg-lav-50' : 'border-transparent bg-white'}`}>
-              <GameIcon id="any" className="w-10 h-10" /><span className="text-[12px] font-bold">아무거나</span>
+              className={`press rounded-2xl py-2.5 flex flex-col items-center gap-1 border-2 border-dashed bg-white/70 ${game === 'any' ? 'border-lav-400' : 'border-lav-200'}`}>
+              <GameIcon id="any" className="w-10 h-10" /><span className="text-[11.5px] font-bold whitespace-nowrap text-lav-500">아무거나</span>
             </button>
             {MATCH_GAMES.map((g) => (
               <button key={g.id} onClick={() => setGame(g.id)} aria-pressed={game === g.id}

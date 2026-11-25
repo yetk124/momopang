@@ -40,6 +40,8 @@ interface State {
   unlockedNow: LimitedId[]
   joinPrefill: string | null
   hostAwaySince: number | null
+  /** 랜덤 매칭으로 만난 상대의 매칭 ID (신고·차단 버튼용, 친구 방이면 null) */
+  matchOpp: string | null
 
   go: (s: Screen) => void
   setProfile: (nickname: string, avatar: AvatarId) => void
@@ -48,7 +50,7 @@ interface State {
   createRoom: (mode: Mode, game?: GameId, restore?: { code: string; state: RoomState | null }) => Promise<void>
   joinRoom: (code: string, mode?: Mode) => Promise<void>
   /** 랜덤 매칭 성공 → 방장은 방 생성, 참가자는 입장 (둘 다 자동 준비) */
-  enterMatch: (r: { code: string; game: GameId; isHost: boolean }) => Promise<void>
+  enterMatch: (r: { code: string; game: GameId; isHost: boolean; oppMid?: string }) => Promise<void>
   leaveRoom: (msg?: string) => void
   intent: (i: Intent) => void
   act: (a: unknown) => void
@@ -64,6 +66,8 @@ let pingTimer: ReturnType<typeof setInterval> | null = null
 let bestRtt = Infinity
 /** 랜덤 매칭으로 들어온 방이면 둘 다 들어왔을 때 자동으로 준비 */
 let matchAuto = false
+/** 방을 나갈 때마다 1씩 올려서, 나간 뒤 늦게 도착한 방 상태가 화면을 되살리지 않게 함 */
+let roomGen = 0
 type EphListener = (from: string, k: string, d: any) => void
 const ephListeners = new Set<EphListener>()
 export const onEph = (fn: EphListener) => { ephListeners.add(fn); return () => { ephListeners.delete(fn) } }
@@ -121,6 +125,7 @@ export const useStore = create<State>((set, get) => ({
   unlockedNow: [],
   joinPrefill: parseInvite(),
   hostAwaySince: null,
+  matchOpp: null,
 
   go: (screen) => set({ screen }),
   setProfile: (rawNick, avatar) => {
@@ -142,7 +147,7 @@ export const useStore = create<State>((set, get) => ({
     teardown()
     const me = get().me
     const code = restore?.code ?? makeRoomCode()
-    set({ busy: true, error: null, mode, isHost: true, pending: [], offset: 0 })
+    set({ busy: true, error: null, mode, isHost: true, pending: [], offset: 0, matchOpp: null })
     try {
       let hub: MemoryHub | null = null
       if (mode === 'bot') { hub = new MemoryHub(); transport = hub.ends[0] } else transport = makeTransport(mode)
@@ -150,7 +155,8 @@ export const useStore = create<State>((set, get) => ({
       tr.onMessage((m) => { if (m.t === 'eph') emitEph(m); else host?.handle(m) })
       tr.onPresence((ids) => { set({ presentIds: ids }); host?.presence(ids) })
       await tr.connect(code, me)
-      host = new HostController(tr, me, (s) => onRoom(s), restore?.state ?? newRoom(code, me))
+      const gen = roomGen
+      host = new HostController(tr, me, (s) => { if (gen === roomGen) onRoom(s) }, restore?.state ?? newRoom(code, me))
       if (game) host.local({ type: 'select', game }, ++seq)
       if (hub) { bot = new Bot(hub.ends[1], BOT_INFO()); await bot.connect(code) }
       if (mode !== 'bot') saveActive({ code, mode, host: true })
@@ -169,13 +175,15 @@ export const useStore = create<State>((set, get) => ({
     if (!/^[A-Z0-9]{6}$/.test(code)) { set({ error: '방 코드는 영문·숫자 6자리예요' }); return }
     teardown()
     const me = get().me
-    set({ busy: true, error: null, mode, isHost: false, pending: [], room: null, offset: 0 })
+    set({ busy: true, error: null, mode, isHost: false, pending: [], room: null, offset: 0, matchOpp: null })
     try {
       const tr = makeTransport(mode); transport = tr
       let resolveRoom: (() => void) | null = null
       const gotRoom = new Promise<void>((r) => (resolveRoom = r))
       let knownHost: string | null = null
+      const gen = roomGen
       tr.onMessage((m) => {
+        if (gen !== roomGen) return
         if (m.t === 'room') {
           // 처음 받은 방장 ID와 다른 곳에서 온 방 상태는 무시 (가짜 상태 주입 방지)
           if (!m.s || m.s.code !== code || typeof m.s.hostId !== 'string') return
@@ -226,15 +234,19 @@ export const useStore = create<State>((set, get) => ({
   async enterMatch(r) {
     matchAuto = true
     track('match_success', { game: r.game, role: r.isHost ? 'host' : 'guest' })
-    if (r.isHost) { await get().createRoom(defaultMode(), r.game, { code: r.code, state: null }); return }
-    await new Promise((res) => setTimeout(res, 900))
-    await get().joinRoom(r.code)
-    if (!get().room) { set({ error: null }); await new Promise((res) => setTimeout(res, 1200)); await get().joinRoom(r.code) }
-    if (!get().room) { matchAuto = false; set({ error: '상대와 연결하지 못했어요. 다시 매칭해 주세요' }) }
+    if (r.isHost) await get().createRoom(defaultMode(), r.game, { code: r.code, state: null })
+    else {
+      await new Promise((res) => setTimeout(res, 900))
+      await get().joinRoom(r.code)
+      if (!get().room) { set({ error: null }); await new Promise((res) => setTimeout(res, 1200)); await get().joinRoom(r.code) }
+      if (!get().room) { matchAuto = false; set({ error: '상대와 연결하지 못했어요. 다시 매칭해 주세요' }) }
+    }
+    if (get().room) set({ matchOpp: r.oppMid ?? null })
   },
 
   leaveRoom(msg) {
     matchAuto = false
+    roomGen++
     const { room, me, isHost } = get()
     if (room) track('room_leave', { phase: room.phase, game: room.session?.game ?? room.game ?? '' })
     if (room && transport) {
@@ -244,7 +256,7 @@ export const useStore = create<State>((set, get) => ({
     }
     saveActive(null)
     setTimeout(teardown, 150)
-    set({ room: null, screen: 'home', mode: null, pending: [], hostAwaySince: null })
+    set({ room: null, screen: 'home', mode: null, pending: [], hostAwaySince: null, matchOpp: null })
     if (msg) get().showToast(msg)
   },
 
